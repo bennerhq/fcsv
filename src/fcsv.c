@@ -96,14 +96,11 @@ void assign_variables_value() {
                 break;
 
             case VAR_DATE: 
-                {
-                    struct tm tm;
-                    strptime(tokens[index], "%Y-%m-%dT%H:%M:%S", &tm);
-                    var->tm = tm;
-                    break;
-                }
+                strptime(tokens[index], "%Y-%m-%dT%H:%M:%S", &var->tm);
+                break;
 
-            default:
+            case VAR_UNKNOWN:
+            case VAR_END:
                 break;
         }
     }
