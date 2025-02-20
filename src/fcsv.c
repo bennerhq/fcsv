@@ -43,6 +43,46 @@ int filter_dynamic(char *line) {
     return execute_code(code, variables);
 }
 
+void  assign_variables(const char *line) {
+    char line_copy[MAX_LINE_ITEMS];
+    strncpy(line_copy, line, MAX_LINE_ITEMS);
+    line_copy[MAX_LINE_ITEMS - 1] = '\0';
+
+    char *token;
+    int index = 0;
+
+    token = strtok(line_copy, ",");
+    while (token != NULL) {
+        if (variables[index].type == VAR_NUMBER) {
+            variables[index].value = atoi(token);
+        } else {
+            variables[index].string = token;
+        }
+        index++;
+        token = strtok(NULL, ",");
+    }
+}
+
+void assign_headder(char *headder_line) {
+    char *token = strtok(headder_line, ",");
+    int index = 0;
+    while (token != NULL) {
+        if (index >= MAX_LINE_ITEMS) {
+            fprintf(stderr, "Error: Too many columns in CSV file\n");
+            exit(EXIT_FAILURE);
+        }
+        Variable *var = &variables[index];
+        index ++;
+
+        var->name = token;
+        var->type = VAR_NUMBER;
+        var->value = 0;
+
+        token = strtok(NULL, ",");
+    }
+    variables[index].type = VAR_END;
+}
+
 void process_csv(const char *input_filename, const char *output_filename, const char *expr) {
     FILE *inputFile = fopen(input_filename, "rb");
     if (inputFile == NULL) {
@@ -63,24 +103,7 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     if (fgets(headder_line, sizeof(headder_line), inputFile) != NULL) {
         fwrite(headder_line, sizeof(char), strlen(headder_line), outputFile);
 
-        // Tokenize header into global variable 
-        char *token = strtok(headder_line, ",");
-        int index = 0;
-        while (token != NULL) {
-            if (index >= MAX_LINE_ITEMS) {
-                fprintf(stderr, "Error: Too many columns in CSV file\n");
-                exit(EXIT_FAILURE);
-            }
-            Variable *var = &variables[index];
-            index ++;
-
-            var->name = token;
-            var->type = VAR_NUMBER;
-            var->value = 0;
-
-            token = strtok(NULL, ",");
-        }
-        variables[index].type = VAR_END;
+        assign_headder(headder_line);
     }
 
     if (code == NULL) {
@@ -101,41 +124,27 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 
     long processed_size = 0;
     while (fgets(line, sizeof(line), inputFile) != NULL) {
-        if (processed_size == 0) {
-            char *element_token = strtok(line, ",");
-            int element_index = 0;
-            while (element_token != NULL) {
-                if (isdigit(element_token[0])) {
-                    variables[element_index].type = VAR_NUMBER;
-                } else if (isalpha(element_token[0])) {
-                    variables[element_index].type = VAR_STRING;
-                } else {
-                    variables[element_index].type = VAR_UNKNOWN;
-                }
-                element_index++;
-                element_token = strtok(NULL, ",");
-            }
+        if (total_lines == 0) {
+            assign_variables(line);
         }
 
         total_lines++;
         processed_size += strlen(line);
 
-        int okay = filter_dynamic(line);
-        if (okay) {
+        int use = filter_dynamic(line);
+        if (use) {
             fwrite(line, sizeof(char), strlen(line), outputFile);
-            written_lines++;    
+            written_lines++;
         }
 
-        // Print progress bar
         int progress = (int)((processed_size * 100) / file_size);
         if (progress != last_progress) {
             last_progress = progress;
 
-            // Get terminal width
             struct winsize w;
             ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
             int terminal_width = w.ws_col;
-            int bar_width = terminal_width * 0.5; // Leave space for percentage display
+            int bar_width = terminal_width * 0.5;
 
             char progress_bar[bar_width + 1];
             int bar_length = (progress * bar_width) / 100;
