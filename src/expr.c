@@ -296,6 +296,10 @@ const Instruction * parse_expression(const char *iexpr, const Variable *ivariabl
         free(code);
     }
     code = (Instruction *) malloc(MAX_CODE_SIZE * sizeof(Instruction *));
+    if (code == NULL) {
+        fprintf(stderr, "Memory allocation error\n");
+        exit(EXIT_FAILURE);
+    }
 
     code_size = 0;
     token = next_token();

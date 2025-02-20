@@ -20,71 +20,74 @@
 #define COLOR_YELLOW "\033[33m"
 #define COLOR_CYAN "\033[36m"
 
+#define MAX_LINE_ITEMS  1024
+
+#define CSV_SEPERATOR   ','
+
 const Instruction *code; 
 
-#define MAX_LINE_ITEMS 1024
 Variable variables[MAX_LINE_ITEMS];
+int variables_size = 0;
 
-int filter(char *line) {
-    char *token;
-    double var_values[MAX_LINE_ITEMS];
-    int index = 0;
+char *tokens[MAX_LINE_ITEMS];
+int tokens_pos[MAX_LINE_ITEMS];
 
-    char line_copy[MAX_LINE_ITEMS];
-    strncpy(line_copy, line, MAX_LINE_ITEMS);
-    line_copy[MAX_LINE_ITEMS - 1] = '\0';
-
-    token = strtok(line_copy, ",");
-    while (token != NULL) {
-        var_values[index++] = atoi(token);
-        token = strtok(NULL, ",");
+int find_char_tokens_pos(const char *str, char ch, int *tokens_pos) {
+    int count = 0;
+    for (int i = 0; str[i] != '\0'; i++) {
+        if (str[i] == ch) {
+            tokens_pos[count++] = i;
+        }
     }
-
-    return execute_code(code, variables);
+    return count;
 }
 
-void  assign_variables_type(const char *line) {
-    char line_copy[MAX_LINE_ITEMS];
-    strncpy(line_copy, line, MAX_LINE_ITEMS);
-    line_copy[MAX_LINE_ITEMS - 1] = '\0';
+void tokenize_line(char *line) {
+    int count = find_char_tokens_pos(line, CSV_SEPERATOR, tokens_pos);
+    int start = 0;
+    for (int i = 0; i <= count; i++) {
+        int end = (i == count) ? strlen(line) : tokens_pos[i];
+        line[end] = '\0';
+        tokens[i] = &line[start];
+        start = end + 1;
+    }
+}
 
-    char *token;
-    int index = 0;
+void assign_variables_name() {
+    for (int index = 0; tokens[index] != NULL; index++) {
+        variables[index].name = tokens[index];
+        variables[index].type = VAR_UNKNOWN;
+    }
+}
 
-    token = strtok(line_copy, ",");
-    while (token != NULL) {
+void assign_variables_type() {
+    for (int index = 0; tokens[index] != NULL; index++) {
+        variables[index].type = isdigit(tokens[index][0]) ? VAR_NUMBER : VAR_STRING;
+    }
+}
+
+void assign_variables_value() {
+    for (int index = 0; tokens[index] != NULL; index++) {
         Variable *var = &variables[index];
-        index++;
-
         if (var->type == VAR_NUMBER) {
-            var->value = atoi(token);
+            var->value = atof(tokens[index]);
         } else {
-            var->string = token;
+            var->string = strdup(tokens[index]);
         }
-
-        token = strtok(NULL, ",");
     }
 }
 
-void assign_variables_name(char *line) {
-    char *token = strtok(line, ",");
-    int index = 0;
-    while (token != NULL) {
-        if (index >= MAX_LINE_ITEMS) {
-            fprintf(stderr, "Error: Too many columns in CSV file\n");
-            exit(EXIT_FAILURE);
-        }
-
+void print_variables() {
+    printf("Variables:\n");
+    for (int index = 0; tokens[index] != NULL; index ++) {
         Variable *var = &variables[index];
-        index ++;
-
-        var->name = token;
-        var->type = VAR_NUMBER;
-        var->value = 0;
-
-        token = strtok(NULL, ",");
+        printf("\t%d: %s = ", index, var->name);
+        if (var->type == VAR_NUMBER) {
+            printf("%f\n", var->value);
+        } else {
+            printf("%s\n", var->string);
+        }
     }
-    variables[index].type = VAR_END;
 }
 
 void process_csv(const char *input_filename, const char *output_filename, const char *expr) {
@@ -100,15 +103,21 @@ void process_csv(const char *input_filename, const char *output_filename, const 
         return;
     }
 
+    fseek(inputFile, 0, SEEK_END);
+    long file_size = ftell(inputFile);
+    fseek(inputFile, 0, SEEK_SET);
+
     printf(COLOR_CYAN "Processing %s\n" COLOR_RESET, input_filename);
 
     // Read the header line
-    char headder_line[MAX_LINE_ITEMS];
-    if (fgets(headder_line, sizeof(headder_line), inputFile) != NULL) {
-        fwrite(headder_line, sizeof(char), strlen(headder_line), outputFile);
-
-        assign_variables_name(headder_line);
+    char headder[MAX_LINE_ITEMS];
+    if (fgets(headder, sizeof(headder), inputFile) == NULL) {
+        return;
     }
+    fwrite(headder, sizeof(char), strlen(headder), outputFile);
+
+    tokenize_line(headder);
+    assign_variables_name();
 
     if (code == NULL) {
         code = parse_expression(expr, variables);
@@ -116,27 +125,29 @@ void process_csv(const char *input_filename, const char *output_filename, const 
         print_code(code);
     }
 
-    char line[MAX_LINE_ITEMS];
     int total_lines = 0;
     int written_lines = 0;
     int last_progress = -1;
-
-    fseek(inputFile, 0, SEEK_END);
-    long file_size = ftell(inputFile);
-    fseek(inputFile, 0, SEEK_SET);
-
     long processed_size = 0;
+
+    char line[MAX_LINE_ITEMS];
+    char copy_line[MAX_LINE_ITEMS];
+
     while (fgets(line, sizeof(line), inputFile) != NULL) {
-        if (total_lines == 0) {
-            assign_variables_type(line);
-        }
-
-        total_lines++;
         processed_size += strlen(line);
+        total_lines ++;
 
-        int use = filter(line);
+        strcpy(copy_line, line);
+
+        tokenize_line(line);
+        if (total_lines == 1) {
+            assign_variables_type();
+        }
+        assign_variables_value();
+
+        int use = execute_code(code, variables);
         if (use) {
-            fwrite(line, sizeof(char), strlen(line), outputFile);
+            fwrite(copy_line, sizeof(char), strlen(copy_line), outputFile);
             written_lines++;
         }
 
@@ -191,16 +202,18 @@ int main(int argc, char *argv[]) {
 
     while ((entry = readdir(dir)) != NULL) {
         if (entry->d_type == DT_REG) {
-            char input_filename[PATH_MAX];
-            snprintf(input_filename, sizeof(input_filename), "%s/%s", input_dir, entry->d_name);
+            const char *ext = strrchr(entry->d_name, '.');
+            if (ext && strcmp(ext, ".csv") == 0) {
+                char input_filename[PATH_MAX];
+                snprintf(input_filename, sizeof(input_filename), "%s/%s", input_dir, entry->d_name);
 
-            char output_filename[PATH_MAX];
-            snprintf(output_filename, sizeof(output_filename), "%s/%s", output_dir, entry->d_name);
+                char output_filename[PATH_MAX];
+                snprintf(output_filename, sizeof(output_filename), "%s/%s", output_dir, entry->d_name);
 
-            process_csv(input_filename, output_filename, expr);
+                process_csv(input_filename, output_filename, expr);
+            }
         }
     }
-
     closedir(dir);
 
     return EXIT_SUCCESS;

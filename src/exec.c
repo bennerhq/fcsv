@@ -146,5 +146,6 @@ double execute_code(const Instruction *code, const Variable *ivariables) {
         exit(EXIT_FAILURE);
     }
 
+    sp--;
     return *sp;
 }
