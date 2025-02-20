@@ -1,7 +1,12 @@
-# fcsv
+# fcsv - Fast CSV
 
-`fcsv` is a tool for working with large CSV files. It provides a simple and 
-efficient way to read, write, and manipulate CSV data.
+`fcsv` (Fast CSV) is a tool for working with large CSV files. It provides a simple and efficient way to read, manipulate, and write any size CSV files.
+
+It's written in native C, with very limited dependencies, and with portability and speed in mind.
+
+Why? Because it's fun!!
+
+NOTE: This code is written with the extensive use of LLMs, like ChatGPT, Gemini, and Claude.
 
 ## Features
 
@@ -22,10 +27,6 @@ The core functionality of `fcsv` is implemented in C, ensuring high performance 
 ## TO-DO
 
 - Add handeling strings in expression evalueation
-
-## PLEASE NOTE
-
-- This code is written with the extensive use of LLM, like ChatGPT, Gemini and Claude
 
 ## Usage
 To use `fcsv` from the command line, follow these steps:
