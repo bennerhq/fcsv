@@ -34,10 +34,9 @@ char *tokens[MAX_LINE_ITEMS];
 int tokens_pos[MAX_LINE_ITEMS];
 
 void tokenize_line(char *line) {
-    const char *str = line;
     int count = 0;
-    for (int i = 0; str[i] != '\0'; i++) {
-        if (str[i] == CSV_SEPERATOR) {
+    for (int i = 0; line[i] != '\0'; i++) {
+        if (line[i] == CSV_SEPERATOR) {
             tokens_pos[count++] = i;
         }
     }
