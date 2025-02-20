@@ -121,6 +121,15 @@ void print_variables() {
 }
 
 void process_csv(const char *input_filename, const char *output_filename, const char *expr) {
+    int total_lines = 0;
+    int written_lines = 0;
+    int last_progress = -1;
+    long processed_size = 0;
+
+    char headder[MAX_LINE_ITEMS];
+    char line[MAX_LINE_ITEMS];
+    char copy_line[MAX_LINE_ITEMS];
+
     FILE *inputFile = fopen(input_filename, "rb");
     if (inputFile == NULL) {
         perror("Error opening input file\n");
@@ -140,11 +149,12 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     printf(COLOR_CYAN "Processing %s\n" COLOR_RESET, input_filename);
 
     // Read the header line
-    char headder[MAX_LINE_ITEMS];
     if (fgets(headder, sizeof(headder), inputFile) == NULL) {
         return;
     }
     fwrite(headder, sizeof(char), strlen(headder), outputFile);
+
+    processed_size += strlen(headder);
 
     tokenize_line(headder);
     assign_variables_name();
@@ -154,14 +164,6 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 
         print_code(code);
     }
-
-    int total_lines = 0;
-    int written_lines = 0;
-    int last_progress = -1;
-    long processed_size = 0;
-
-    char line[MAX_LINE_ITEMS];
-    char copy_line[MAX_LINE_ITEMS];
 
     while (fgets(line, sizeof(line), inputFile) != NULL) {
         processed_size += strlen(line);
