@@ -25,7 +25,7 @@ const Instruction *code;
 #define MAX_LINE_ITEMS 1024
 Variable variables[MAX_LINE_ITEMS];
 
-int filter_dynamic(char *line) {
+int filter(char *line) {
     char *token;
     double var_values[MAX_LINE_ITEMS];
     int index = 0;
@@ -43,7 +43,7 @@ int filter_dynamic(char *line) {
     return execute_code(code, variables);
 }
 
-void  assign_variables(const char *line) {
+void  assign_variables_type(const char *line) {
     char line_copy[MAX_LINE_ITEMS];
     strncpy(line_copy, line, MAX_LINE_ITEMS);
     line_copy[MAX_LINE_ITEMS - 1] = '\0';
@@ -53,24 +53,28 @@ void  assign_variables(const char *line) {
 
     token = strtok(line_copy, ",");
     while (token != NULL) {
-        if (variables[index].type == VAR_NUMBER) {
-            variables[index].value = atoi(token);
-        } else {
-            variables[index].string = token;
-        }
+        Variable *var = &variables[index];
         index++;
+
+        if (var->type == VAR_NUMBER) {
+            var->value = atoi(token);
+        } else {
+            var->string = token;
+        }
+
         token = strtok(NULL, ",");
     }
 }
 
-void assign_headder(char *headder_line) {
-    char *token = strtok(headder_line, ",");
+void assign_variables_name(char *line) {
+    char *token = strtok(line, ",");
     int index = 0;
     while (token != NULL) {
         if (index >= MAX_LINE_ITEMS) {
             fprintf(stderr, "Error: Too many columns in CSV file\n");
             exit(EXIT_FAILURE);
         }
+
         Variable *var = &variables[index];
         index ++;
 
@@ -103,7 +107,7 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     if (fgets(headder_line, sizeof(headder_line), inputFile) != NULL) {
         fwrite(headder_line, sizeof(char), strlen(headder_line), outputFile);
 
-        assign_headder(headder_line);
+        assign_variables_name(headder_line);
     }
 
     if (code == NULL) {
@@ -112,7 +116,6 @@ void process_csv(const char *input_filename, const char *output_filename, const 
         print_code(code);
     }
 
-    // Read and process each line
     char line[MAX_LINE_ITEMS];
     int total_lines = 0;
     int written_lines = 0;
@@ -125,13 +128,13 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     long processed_size = 0;
     while (fgets(line, sizeof(line), inputFile) != NULL) {
         if (total_lines == 0) {
-            assign_variables(line);
+            assign_variables_type(line);
         }
 
         total_lines++;
         processed_size += strlen(line);
 
-        int use = filter_dynamic(line);
+        int use = filter(line);
         if (use) {
             fwrite(line, sizeof(char), strlen(line), outputFile);
             written_lines++;
@@ -161,7 +164,9 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     fclose(outputFile);
 
     double pct_written = (double)written_lines * 100 / total_lines;
-    printf(COLOR_YELLOW "Written %s: %d of %d lines written (%.1f%%)\n" COLOR_RESET, output_filename, written_lines, total_lines, pct_written);
+    printf(
+        COLOR_YELLOW "Written %s: %d of %d lines written (%.1f%%)\n" COLOR_RESET, 
+        output_filename, written_lines, total_lines, pct_written);
 }
 
 int main(int argc, char *argv[]) {

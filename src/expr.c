@@ -124,25 +124,6 @@ Token next_token() {
     exit(EXIT_FAILURE);
 }
 
-const Instruction * parse_expression(const char *iexpr, const Variable *ivariables) {
-    expr = iexpr;
-    variables = ivariables;
-
-    if (code != NULL) {
-        free(code);
-    }
-    code = (Instruction *) malloc(MAX_CODE_SIZE * sizeof(Instruction *));
-
-    code_size = 0;
-    token = next_token();
-
-    parse_expr();
-
-    emit(OP_HALT, 0);
-
-    return &code[0];
-}
-
 void parse_expr() {
     if (token.op == TO_TRUE || token.op == TO_FALSE || 
         token.op == OP_NOT || token.op == TO_LPAREN || 
@@ -305,4 +286,23 @@ void parse_cond_expr() {
         code[code_false_branch].value = code_false;
         code[code_jump_end].value = code_size;
     }
+}
+
+const Instruction * parse_expression(const char *iexpr, const Variable *ivariables) {
+    expr = iexpr;
+    variables = ivariables;
+
+    if (code != NULL) {
+        free(code);
+    }
+    code = (Instruction *) malloc(MAX_CODE_SIZE * sizeof(Instruction *));
+
+    code_size = 0;
+    token = next_token();
+
+    parse_expr();
+
+    emit(OP_HALT, 0);
+
+    return code;
 }
