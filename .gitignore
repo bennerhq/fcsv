@@ -1,0 +1,7 @@
+# ignore .o files
+*.o
+
+# ignore .DS_Store files
+.DS_Store
+
+
