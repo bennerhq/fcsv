@@ -33,18 +33,15 @@ int variables_size = 0;
 char *tokens[MAX_LINE_ITEMS];
 int tokens_pos[MAX_LINE_ITEMS];
 
-int find_char_tokens_pos(const char *str, char ch, int *tokens_pos) {
+void tokenize_line(char *line) {
+    const char *str = line;
     int count = 0;
     for (int i = 0; str[i] != '\0'; i++) {
-        if (str[i] == ch) {
+        if (str[i] == CSV_SEPERATOR) {
             tokens_pos[count++] = i;
         }
     }
-    return count;
-}
 
-void tokenize_line(char *line) {
-    int count = find_char_tokens_pos(line, CSV_SEPERATOR, tokens_pos);
     int start = 0;
     for (int i = 0; i <= count; i++) {
         int end = (i == count) ? strlen(line) : tokens_pos[i];
@@ -72,16 +69,24 @@ int is_valid_iso_datetime(const char *str) {
     return strptime(str, "%Y-%m-%dT%H:%M:%S", &tm) != NULL;
 }
 
-void assign_variables_type() {
+int assign_variables_type() {
+    int type_changed = 0;
+
     for (int index = 0; tokens[index] != NULL; index++) {
+        Variable *var = &variables[index];
         if (is_valid_double(tokens[index])) {
-            variables[index].type = VAR_NUMBER;
+            type_changed = type_changed | (var->type != VAR_NUMBER);
+            var->type = VAR_NUMBER;
         } else if (is_valid_iso_datetime(tokens[index])) {
-            variables[index].type = VAR_DATE;
+            type_changed = type_changed | (var->type != VAR_DATE);
+            var->type = VAR_DATE;
         } else {
-            variables[index].type = VAR_STRING;
+            type_changed = type_changed | (var->type != VAR_STRING);
+            var->type = VAR_STRING;
         }
     }
+
+    return type_changed;
 }
 
 void assign_variables_value() {
@@ -159,12 +164,6 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     tokenize_line(headder);
     assign_variables_name();
 
-    if (code == NULL) {
-        code = parse_expression(expr, variables);
-
-        print_code(code);
-    }
-
     while (fgets(line, sizeof(line), inputFile) != NULL) {
         processed_size += strlen(line);
         total_lines ++;
@@ -174,6 +173,10 @@ void process_csv(const char *input_filename, const char *output_filename, const 
         tokenize_line(line);
         if (total_lines == 1) {
             assign_variables_type();
+
+            code = parse_expression(expr, variables);
+
+            print_code(code);
         }
         assign_variables_value();
 
