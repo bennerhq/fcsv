@@ -4,6 +4,8 @@
 #ifndef __EXEC_H__
 #define __EXEC_H__
 
+#include <time.h>
+
 #define OpCode      int
 #define OP_PUSH_NUM (0)
 #define OP_PUSH_VAR (1)
@@ -33,6 +35,7 @@ typedef struct {
 typedef enum {
     VAR_NUMBER,
     VAR_STRING,
+    VAR_DATE,
     VAR_UNKNOWN,
     VAR_END
 } VariableType;
@@ -43,6 +46,7 @@ typedef struct {
     union {
         char *string;
         double value;
+        struct tm tm;
     };
 } Variable;
 

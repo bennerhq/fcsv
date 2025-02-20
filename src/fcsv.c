@@ -60,19 +60,51 @@ void assign_variables_name() {
     }
 }
 
+int is_valid_double(const char *str) {
+    char *endptr;
+    strtod(str, &endptr);
+    return *endptr == '\0' && endptr != str;
+}
+
+int is_valid_iso_datetime(const char *str) {
+    struct tm tm;
+    return strptime(str, "%Y-%m-%dT%H:%M:%S", &tm) != NULL;
+}
+
 void assign_variables_type() {
     for (int index = 0; tokens[index] != NULL; index++) {
-        variables[index].type = isdigit(tokens[index][0]) ? VAR_NUMBER : VAR_STRING;
+        if (is_valid_double(tokens[index])) {
+            variables[index].type = VAR_NUMBER;
+        } else if (is_valid_iso_datetime(tokens[index])) {
+            variables[index].type = VAR_DATE;
+        } else {
+            variables[index].type = VAR_STRING;
+        }
     }
 }
 
 void assign_variables_value() {
     for (int index = 0; tokens[index] != NULL; index++) {
         Variable *var = &variables[index];
-        if (var->type == VAR_NUMBER) {
-            var->value = atof(tokens[index]);
-        } else {
-            var->string = strdup(tokens[index]);
+        switch (var->type) {
+            case VAR_NUMBER:
+                var->value = atof(tokens[index]);
+                break;
+
+            case VAR_STRING:
+                var->string = tokens[index];
+                break;
+
+            case VAR_DATE: 
+                {
+                    struct tm tm;
+                    strptime(tokens[index], "%Y-%m-%dT%H:%M:%S", &tm);
+                    var->tm = tm;
+                    break;
+                }
+
+            default:
+                break;
         }
     }
 }
