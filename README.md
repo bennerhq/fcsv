@@ -27,8 +27,10 @@ The core functionality of `fcsv` is implemented in C, ensuring high performance 
 
 ## TO-DO
 
-- Add handeling strings in expression evalueation
-- Control CSV delimiter from cli
+- Handle strings in expression evalueation
+- Control CSV delimiters from cli
+- Handle misformatted CSV files
+
 
 ## Usage
 
