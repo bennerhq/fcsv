@@ -1,0 +1,31 @@
+# fcsv
+
+`fcsv` is a tool for working with large CSV files. It provides a simple and 
+efficient way to read, write, and manipulate CSV data.
+
+## Features
+
+- Efficiently handles large CSV files
+- Provides functions for reading and writing CSV data
+- Supports various CSV formats and delimiters
+- Allows for easy manipulation of CSV data
+
+## Code Functionality
+
+The core functionality of `fcsv` is implemented in C, ensuring high performance and efficiency. The C code provides the following features:
+
+- **Reading CSV Files**: Functions to read CSV files line by line or in bulk, handling different delimiters and formats.
+- **Writing CSV Files**: Functions to write data to CSV files, supporting various delimiters and formats.
+- **Data Manipulation**: Functions to manipulate CSV data, such as filtering rows, selecting columns, and transforming data.
+- **Memory Management**: Efficient memory management to handle large datasets without excessive memory usage.
+
+## TO-DO
+
+- Add handeling strings in expression evalueation
+
+## PLEASE NOTE
+
+- This code is written with the extensive use of LLM, like ChatGPT, Gemini and Claude
+
+## Usage
+To use `fcsv` from the command line, follow these steps:
