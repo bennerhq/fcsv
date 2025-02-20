@@ -23,6 +23,7 @@
 #define MAX_LINE_ITEMS  1024
 
 #define CSV_SEPERATOR   ','
+#define DATE_FORMAT     "%Y-%m-%dT%H:%M:%S"
 
 const Instruction *code; 
 
@@ -95,8 +96,8 @@ void assign_variables_value() {
                 var->string = tokens[index];
                 break;
 
-            case VAR_DATE: 
-                strptime(tokens[index], "%Y-%m-%dT%H:%M:%S", &var->tm);
+            case VAR_DATE:
+                strptime(tokens[index], DATE_FORMAT, &var->tm);
                 break;
 
             case VAR_UNKNOWN:
