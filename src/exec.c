@@ -40,8 +40,8 @@ const char *op_names[] = {
     "AND",
     "OR",
     "NOT",
-    "JP %03d",
-    "JPZ %03d",
+    "JP %03X",
+    "JPZ %03X",
     "NOP",
     "EQ_STR",
     "HALT"
@@ -51,7 +51,7 @@ const Variable *variables;
 
 void print_instruction(const Instruction *instr) {
     const char *fmt = op_names[instr->op];
-    if (strstr(fmt, "%d") || strstr(fmt, "%03d")) {
+    if (strstr(fmt, "%d") || strstr(fmt, "%03X")) {
         printf(fmt, (int) instr->value);
     } else if (strstr(fmt, "%s")) {
         printf(fmt, instr->str);
@@ -67,10 +67,13 @@ void print_instruction(const Instruction *instr) {
 }
 
 void print_code(const Instruction *code) {
-    for (const Instruction *ip = code; ip->op != OP_HALT; ip++) {
-        printf("%03d\t", (int) (ip - code));
+    const Instruction *ip = code - 1;
+    do {
+        ip ++;
+
+        printf("%03X\t", (int) (ip - code));
         print_instruction(ip);
-    }
+     } while (ip->op != OP_HALT);
 }
 
 #define OP_VAR_TYPE(REL_OP)                                         \
