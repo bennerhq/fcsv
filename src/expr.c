@@ -36,35 +36,35 @@ int code_size;
 
 typedef struct {
     OpCode op;
-    char *value;
+    char *str;
 } Token;
 
 const Token op_symbols[] = {
-    {.value = "+",    .op = OP_ADD},
-    {.value = "-",    .op = OP_SUB},
-    {.value = "*",    .op = OP_MUL},
-    {.value = "/",    .op = OP_DIV},
-    {.value = "!=",   .op = OP_NEQ},
-    {.value = "<=",   .op = OP_LE},
-    {.value = ">=",   .op = OP_GE},
-    {.value = "<",    .op = OP_LT},
-    {.value = ">",    .op = OP_GT},
-    {.value = "=",    .op = OP_EQ},
-    {.value = "&",    .op = OP_AND},
-    {.value = "|",    .op = OP_OR},
-    {.value = "!",    .op = OP_NOT},
-    {.value = "?",    .op = OP_JPZ},
-    {.value = ":",    .op = TO_COLON},
-    {.value = "(",    .op = TO_LPAREN},
-    {.value = ")",    .op = TO_RPAREN},
-    {.value = "true", .op = TO_TRUE},
-    {.value = "false",.op = TO_FALSE},
-    {.value = NULL,   .op = TO_END},
+    {.str = "+",    .op = OP_ADD},
+    {.str = "-",    .op = OP_SUB},
+    {.str = "*",    .op = OP_MUL},
+    {.str = "/",    .op = OP_DIV},
+    {.str = "!=",   .op = OP_NEQ},
+    {.str = "<=",   .op = OP_LE},
+    {.str = ">=",   .op = OP_GE},
+    {.str = "<",    .op = OP_LT},
+    {.str = ">",    .op = OP_GT},
+    {.str = "=",    .op = OP_EQ},
+    {.str = "&",    .op = OP_AND},
+    {.str = "|",    .op = OP_OR},
+    {.str = "!",    .op = OP_NOT},
+    {.str = "?",    .op = OP_JPZ},
+    {.str = ":",    .op = TO_COLON},
+    {.str = "(",    .op = TO_LPAREN},
+    {.str = ")",    .op = TO_RPAREN},
+    {.str = "true", .op = TO_TRUE},
+    {.str = "false",.op = TO_FALSE},
+    {.str = NULL,   .op = TO_END},
 };
 
 const Variable *variables;
 const char *expr;
-Token token;
+Token token = {.str = NULL, .op = TO_END};
 
 void emit(OpCode op, int value) {
     if (code_size + 1 >= MAX_CODE_SIZE) {
@@ -77,7 +77,16 @@ void emit(OpCode op, int value) {
     code_size ++;
 }
 
+void cleanToken() {
+    if (token.str != NULL) {
+        free(token.str);
+        token.str = NULL;
+    }
+}
+
 Token next_token() {
+    cleanToken();
+
     while (isspace(*expr)) {
         expr++;
     }
@@ -103,11 +112,11 @@ Token next_token() {
         return (Token){TO_NUMBER, strndup(start, expr - start)};
     }
 
-    for (int i = 0; op_symbols[i].value; i++) {
+    for (int i = 0; op_symbols[i].str; i++) {
         const Token* item = &op_symbols[i];
-        if (strlen(item->value) && strncmp(expr, item->value, strlen(item->value)) == 0) {
-            expr += strlen(item->value);
-            return (Token){item->op, strndup(item->value, strlen(item->value))};
+        if (strlen(item->str) && strncmp(expr, item->str, strlen(item->str)) == 0) {
+            expr += strlen(item->str);
+            return (Token){item->op, strndup(item->str, strlen(item->str))};
         }
     }
 
@@ -158,14 +167,14 @@ void parse_term() {
 void parse_factor() {
     switch (token.op) {
         case TO_NUMBER:
-            emit(OP_PUSH_NUM, atoi(token.value));
+            emit(OP_PUSH_NUM, atoi(token.str));
             token = next_token();
             break;
 
         case TO_ID_NAME: {
             int var_index = -1;
             for (int i = 0; variables[i].type != VAR_END; i++) {
-                if (strncmp(variables[i].name, token.value, strlen(token.value)) == 0) {
+                if (strncmp(variables[i].name, token.str, strlen(token.str)) == 0) {
                     var_index = i;
                     break;
                 }
@@ -173,7 +182,7 @@ void parse_factor() {
             if (var_index != -1) {
                 emit(OP_PUSH_VAR, var_index);
             } else {
-                fprintf(stderr, "Error: Undefined variable '%s'\n", token.value);
+                fprintf(stderr, "Error: Undefined variable '%s'\n", token.str);
                 exit(EXIT_FAILURE);
             }
             token = next_token();
@@ -181,7 +190,7 @@ void parse_factor() {
         }
 
         case TO_ID_IDX:
-            emit(OP_PUSH_VAR, atoi(token.value));
+            emit(OP_PUSH_VAR, atoi(token.str));
             token = next_token();
             break;
 
@@ -307,6 +316,8 @@ const Instruction * parse_expression(const char *iexpr, const Variable *ivariabl
     parse_expr();
 
     emit(OP_HALT, 0);
+
+    cleanToken();
 
     return code;
 }

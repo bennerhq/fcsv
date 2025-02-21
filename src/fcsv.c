@@ -74,13 +74,13 @@ int assign_variables_type() {
     for (int index = 0; tokens[index] != NULL; index++) {
         Variable *var = &variables[index];
         if (is_valid_double(tokens[index])) {
-            type_changed = type_changed | (var->type != VAR_NUMBER);
+            if (var->type != VAR_NUMBER) type_changed = 1;
             var->type = VAR_NUMBER;
         } else if (is_valid_iso_datetime(tokens[index])) {
-            type_changed = type_changed | (var->type != VAR_DATE);
+            if (var->type != VAR_DATE) type_changed = 1;
             var->type = VAR_DATE;
         } else {
-            type_changed = type_changed | (var->type != VAR_STRING);
+            if (var->type != VAR_STRING) type_changed = 1;
             var->type = VAR_STRING;
         }
     }
@@ -119,7 +119,7 @@ void print_variables() {
         if (var->type == VAR_NUMBER) {
             printf("%f\n", var->value);
         } else {
-            printf("%s\n", var->string);
+            printf("'%s'\n", var->string);
         }
     }
 }
@@ -179,8 +179,8 @@ void process_csv(const char *input_filename, const char *output_filename, const 
         }
         assign_variables_value();
 
-        int use = execute_code(code, variables);
-        if (use) {
+        int is_true = execute_code(code, variables);
+        if (is_true) {
             fwrite(copy_line, sizeof(char), strlen(copy_line), outputFile);
             written_lines++;
         }
