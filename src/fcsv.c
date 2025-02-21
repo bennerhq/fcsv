@@ -33,7 +33,18 @@ int variables_size = 0;
 char *tokens[MAX_LINE_ITEMS];
 int tokens_pos[MAX_LINE_ITEMS];
 
+void replace_char(char *str, char find, char replace) {
+    while (*str) {
+        if (*str == find) {
+            *str = replace;
+        }
+        str++;
+    }
+}
+
 void tokenize_line(char *line) {
+    replace_char(line, '\n', '\0');
+
     int count = 0;
     for (int i = 0; line[i] != '\0'; i++) {
         if (line[i] == CSV_SEPERATOR) {
@@ -51,10 +62,12 @@ void tokenize_line(char *line) {
 }
 
 void assign_variables_name() {
-    for (int index = 0; tokens[index] != NULL; index++) {
+    int index = 0;
+    for (index = 0; tokens[index] != NULL; index++) {
         variables[index].name = tokens[index];
         variables[index].type = VAR_UNKNOWN;
     }
+    variables[index].type = VAR_END;
 }
 
 int is_valid_double(const char *str) {
@@ -97,7 +110,7 @@ void assign_variables_value() {
                 break;
 
             case VAR_STRING:
-                var->string = tokens[index];
+                var->str = tokens[index];
                 break;
 
             case VAR_DATE:
@@ -119,7 +132,7 @@ void print_variables() {
         if (var->type == VAR_NUMBER) {
             printf("%f\n", var->value);
         } else {
-            printf("'%s'\n", var->string);
+            printf("'%s'\n", var->str);
         }
     }
 }
@@ -160,6 +173,7 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 
     processed_size += strlen(headder);
 
+    replace_char(headder, '\n', '\0');
     tokenize_line(headder);
     assign_variables_name();
 
@@ -168,13 +182,12 @@ void process_csv(const char *input_filename, const char *output_filename, const 
         total_lines ++;
 
         strcpy(copy_line, line);
-
         tokenize_line(line);
+
         if (total_lines == 1) {
             assign_variables_type();
 
             code = parse_expression(expr, variables);
-
             print_code(code);
         }
         assign_variables_value();

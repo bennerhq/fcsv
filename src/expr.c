@@ -1,7 +1,8 @@
 /**
  * expr.c - Expression parser
  */
-#include <stdio.h>
+
+ #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -19,26 +20,32 @@ void parse_rel_expr();
 void parse_arithmetic_expr();
 void parse_cond_expr();
 
-Instruction *code = NULL; 
-int code_size;
+#define IS_INT       "0123456789"
+#define IS_DOUBLE    IS_INT "."
+#define IS_ALPHA     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+#define IS_ALNUM     IS_ALPHA IS_INT
+#define IS_SPACE     " \t\n"
 
 #define MAX_STR_SIZE    (32)
 #define MAX_CODE_SIZE   (1024)
 
-#define TO_COLON    (OP_HALT + 1)
-#define TO_LPAREN   (OP_HALT + 2)
-#define TO_RPAREN   (OP_HALT + 3)
-#define TO_TRUE     (OP_HALT + 4)
-#define TO_FALSE    (OP_HALT + 5)
-#define TO_NUMBER   (OP_HALT + 6)
-#define TO_ID_NAME  (OP_HALT + 7)
-#define TO_ID_IDX   (OP_HALT + 8)
-#define TO_END      (OP_HALT + 9)
+#define TOK_BASE     (1000)
+#define TOK_COLON    (TOK_BASE + 1)
+#define TOK_LPAREN   (TOK_BASE + 2)
+#define TOK_RPAREN   (TOK_BASE + 3)
+#define TOK_TRUE     (TOK_BASE + 4)
+#define TOK_FALSE    (TOK_BASE + 5)
+#define TOK_NUMBER   (TOK_BASE + 6)
+#define TOK_ID_NAME  (TOK_BASE + 7)
+#define TOK_VAR_IDX  (TOK_BASE + 8)
+#define TOK_VAR_STR  (TOK_BASE + 9)
+#define TOK_END      (TOK_BASE + 10)
 
 typedef struct {
     OpCode op;
     union {
-        char str[MAX_STR_SIZE];
+        char name[MAX_STR_SIZE];
+        const char *str;
         double value;
     };
 } Token;
@@ -59,113 +66,149 @@ const Token op_symbols[] = {
     {.str = "|",    .op = OP_OR},
     {.str = "!",    .op = OP_NOT},
     {.str = "?",    .op = OP_JPZ},
-    {.str = ":",    .op = TO_COLON},
-    {.str = "(",    .op = TO_LPAREN},
-    {.str = ")",    .op = TO_RPAREN},
-    {.str = "true", .op = TO_TRUE},
-    {.str = "false",.op = TO_FALSE},
-    {.str = "\n",   .op = TO_END},
+    {.str = ":",    .op = TOK_COLON},
+    {.str = "(",    .op = TOK_LPAREN},
+    {.str = ")",    .op = TOK_RPAREN},
+    {.str = "true", .op = TOK_TRUE},
+    {.str = "false",.op = TOK_FALSE},
+    {.str = "",     .op = TOK_END},
 };
 
-const Variable *variables;
-const char *expr;
+Instruction *code = NULL; 
+int code_size;
 
-Token next_token() {
-    while (isspace(*expr)) {
+const Variable *variables;
+
+const char *expr;
+const char *expr_end;
+
+int set_token(OpCode op, const char *match, int len) {
+    const char *start = expr;
+    if (match) {
+        while (expr < expr_end && strchr(match, *expr)) {
+            expr++;
+        }
+        len = expr - start;
+    }
+    else {
+        expr += len;
+    }
+    if (len >= MAX_STR_SIZE - 1) {
+        fprintf(stderr, "Error: String too long %s\n", start);
+        exit(EXIT_FAILURE);
+        return 0;
+    }
+
+    token.op = op;
+
+    char value[MAX_STR_SIZE];
+    strncpy(value, start, len);
+    value[len] = '\0';
+
+    if (op == TOK_NUMBER || op == TOK_VAR_IDX) {
+        char *endptr;
+        token.value = strtod(value, &endptr);
+        if (*endptr != '\0') return 0;
+    }
+    else {
+        strcpy(token.name, value);
+    }
+
+    return 1;
+}
+
+void next_token() {
+    while (expr < expr_end && strchr(IS_SPACE, *expr)) {
         expr++;
     }
 
-    if (*expr == '\0') {
-        return (Token){.str = "\0", .op = TO_END};
+    if (expr >= expr_end) {
+        token.op = TOK_END;
+        return;
+    }
+
+    if (*expr == '"') {
+        expr++;
+        const char *start = expr;
+
+        while (*expr != '"' && expr < expr_end) {
+            expr++;
+        }
+
+        if (*expr != '"') {
+            fprintf(stderr, "Error: Expected '\"'\n");
+            exit(EXIT_FAILURE);
+        }
+
+        int len = expr - start;
+        char *str = (char *) malloc(len + 1);
+        strncpy(str, start, len);
+        token.op = TOK_VAR_STR;
+        token.str = str;
+
+        expr ++;
+        return;
     }
 
     if (*expr == '#') {
         expr++;
-        const char *start = expr;
-        while (isdigit(*expr)) {
-            expr++;
-        }
-        int len = expr - start;
-        if (len >= MAX_STR_SIZE - 1) {
-            fprintf(stderr, "Error: Too long index number\n");
-            exit(EXIT_FAILURE);
-        }
-        char value[MAX_STR_SIZE];
-        strncpy(value, start, len);
-        value[len] = '\0';
-
-        token.op = TO_ID_IDX;
-        token.value = atoi(value);
-        return token;
+        
+        set_token(TOK_VAR_IDX, IS_INT, 0);
+        return;
     }
 
-    if (isdigit(*expr)) {
-        const char *start = expr;
-        while (isdigit(*expr) || *expr == '.') {
-            expr++;
-        }
-        int len = expr - start;
-        if (len >= MAX_STR_SIZE - 1) {
-            fprintf(stderr, "Error: Too long number\n");
-            exit(EXIT_FAILURE);
-        }
-        char value[MAX_STR_SIZE];
-        strncpy(value, start, len);
-        value[len] = '\0';
-
-        char *endptr;
-        token.op = TO_NUMBER;
-        token.value = strtod(value, &endptr);
-        return token;
+    if (strchr(IS_DOUBLE, *expr)) {
+        set_token(TOK_NUMBER, IS_DOUBLE, 0);
+        return;
     }
 
-    for (int i = 0; strlen(op_symbols[i].str); i++) {
-        const Token* item = &op_symbols[i];
-        if (strlen(item->str) && strncmp(expr, item->str, strlen(item->str)) == 0) {
-            expr += strlen(item->str);
-            token.op = item->op;
-            strncpy(token.str, item->str, strlen(item->str));
-            token.str[strlen(item->str)] = '\0';
-            return token;
+    for (const Token *item = op_symbols; item++;) {
+        if (item->op == TOK_END) break;
+
+        int len = strlen(item->str);
+        if (strncmp(expr, item->str, len) == 0) {
+            set_token(item->op, NULL, len);
+            return;
         }
     }
 
-    if (isalpha(*expr)) {
-        const char *start = expr;
-        while (isalnum(*expr) || *expr == '_') {
-            expr++;
-        }
-        int len = expr - start;
-        if (len >= MAX_STR_SIZE - 1) {
-            fprintf(stderr, "Error: Too long string\n");
-            exit(EXIT_FAILURE);
-        }
-        token.op = TO_ID_NAME;
-        strncpy(token.str, start, len);
-        token.str[len] = '\0';
-        return token;
+    if (strchr(IS_ALNUM, *expr)) {
+        set_token(TOK_ID_NAME, IS_ALNUM, 0);
+        return;
     }
 
-    fprintf(stderr, "Error: Undefined valuebol '%s'\n", strndup(expr++, 1));
+    fprintf(stderr, "Error: Undefined symbol '%c'\n", *expr);
     exit(EXIT_FAILURE);
 }
 
-void emit(OpCode op, int value) {
+void emit_overflow() {
     if (code_size + 1 >= MAX_CODE_SIZE) {
         fprintf(stderr, "Error: code array overflow\n");
         exit(EXIT_FAILURE);
-	}
+    }
+}
+
+void emit(OpCode op, double value) {
+    emit_overflow();
 
     code[code_size].op = op;
     code[code_size].value = value;
     code_size ++;
 }
 
+void emit_str(OpCode op, const char *str) {
+    emit_overflow();
+
+    code[code_size].op = op;
+    code[code_size].str = str;
+    code_size ++;
+}
+
 void parse_expr() {
-    if (token.op == TO_TRUE || token.op == TO_FALSE || 
-        token.op == OP_NOT || token.op == TO_LPAREN || 
-        token.op == TO_ID_NAME || token.op == TO_ID_IDX ||
-        token.op == TO_NUMBER) {
+    if (token.op == TOK_TRUE || token.op == TOK_FALSE || 
+        token.op == OP_NOT || token.op == TOK_LPAREN || 
+        token.op == TOK_ID_NAME || token.op == TOK_VAR_IDX ||
+        token.op == TOK_NUMBER || token.op == TOK_VAR_STR) {
         parse_cond_expr();
     } else {
         parse_arithmetic_expr();
@@ -176,7 +219,7 @@ void parse_arithmetic_expr() {
     parse_term();
     while (token.op == OP_ADD || token.op == OP_SUB) {
         OpCode op = token.op;
-        token = next_token();
+        next_token();
         parse_term();
         emit(op, 0);
     }
@@ -186,7 +229,7 @@ void parse_term() {
     parse_factor();
     while (token.op == OP_MUL || token.op == OP_DIV) {
         OpCode op = token.op;
-        token = next_token();
+        next_token();
         parse_factor();
         emit(op, 0);
     }
@@ -194,15 +237,15 @@ void parse_term() {
 
 void parse_factor() {
     switch (token.op) {
-        case TO_NUMBER:
+        case TOK_NUMBER:
             emit(OP_PUSH_NUM, token.value);
-            token = next_token();
+            next_token();
             break;
 
-        case TO_ID_NAME: {
+        case TOK_ID_NAME: {
             int var_index = -1;
             for (int i = 0; variables[i].type != VAR_END; i++) {
-                if (strncmp(variables[i].name, token.str, strlen(token.str)) == 0) {
+                if (strncmp(variables[i].name, token.name, strlen(token.name)) == 0) {
                     var_index = i;
                     break;
                 }
@@ -210,26 +253,31 @@ void parse_factor() {
             if (var_index != -1) {
                 emit(OP_PUSH_VAR, var_index);
             } else {
-                fprintf(stderr, "Error: Undefined variable '%s'\n", token.str);
+                fprintf(stderr, "Error: Undefined variable '%s'\n", token.name);
                 exit(EXIT_FAILURE);
             }
-            token = next_token();
+            next_token();
             break;
         }
 
-        case TO_ID_IDX:
+        case TOK_VAR_IDX:
             emit(OP_PUSH_VAR, token.value);
-            token = next_token();
+            next_token();
             break;
 
-        case TO_LPAREN:
-            token = next_token();
+        case TOK_VAR_STR:
+            emit_str(OP_PUSH_STR, token.str);
+            next_token();
+            break;
+
+        case TOK_LPAREN:
+            next_token();
             parse_expr();
-            if (token.op != TO_RPAREN) {
+            if (token.op != TOK_RPAREN) {
                 fprintf(stderr, "Error: Expected ')'\n");
                 exit(EXIT_FAILURE);
             }
-            token = next_token();
+            next_token();
             break;
 
         default:
@@ -240,7 +288,7 @@ void parse_factor() {
 void parse_bool_expr() {
     parse_bool_term();
     while (token.op == OP_OR) {
-        token = next_token();
+        next_token();
         parse_bool_term();
         emit(OP_OR, 0);
     }
@@ -249,7 +297,7 @@ void parse_bool_expr() {
 void parse_bool_term() {
     parse_bool_factor();
     while (token.op == OP_AND) {
-        token = next_token();
+        next_token();
         parse_bool_factor();
         emit(OP_AND, 0);
     }
@@ -257,30 +305,30 @@ void parse_bool_term() {
 
 void parse_bool_factor() {
     switch (token.op) {
-        case TO_TRUE:
+        case TOK_TRUE:
             emit(OP_PUSH_NUM, 1);
-            token = next_token();
+            next_token();
             break;
 
-        case TO_FALSE:
+        case TOK_FALSE:
             emit(OP_PUSH_NUM, 0);
-            token = next_token();
+            next_token();
             break;
 
         case OP_NOT:
-            token = next_token();
+            next_token();
             parse_bool_factor();
             emit(OP_NOT, 0);
             break;
 
-        case TO_LPAREN:
-            token = next_token();
+        case TOK_LPAREN:
+            next_token();
             parse_expr();
-            if (token.op != TO_RPAREN) {
+            if (token.op != TOK_RPAREN) {
                 fprintf(stderr, "Error: Expected ')'\n");
                 exit(EXIT_FAILURE);
             }
-            token = next_token();
+            next_token();
             break;
 
         default:
@@ -295,7 +343,7 @@ void parse_rel_expr() {
         token.op == OP_LT || token.op == OP_GT || 
         token.op == OP_LE || token.op == OP_GE) {
         OpCode op = token.op;
-        token = next_token();
+        next_token();
         parse_arithmetic_expr();
         emit(op, 0);
     }
@@ -304,20 +352,23 @@ void parse_rel_expr() {
 void parse_cond_expr() {
     parse_bool_expr();
     if (token.op == OP_JPZ) {
-        token = next_token();
+        next_token();
+
         int code_false_branch = code_size;
         emit(OP_JPZ, 0);
+
         parse_expr();   // Parse true branch
+
         int code_jump_end = code_size;
         emit(OP_JP, 0);
 
-        if (token.op != TO_COLON) {
+        if (token.op != TOK_COLON) {
             fprintf(stderr, "Error: Expected ':' for conditional expression\n");
             exit(EXIT_FAILURE);
         }
         int code_false = code_size;
 
-        token = next_token(); // Skip ':'
+        next_token(); // Skip ':'
         parse_expr();   // Parse false branch
 
         code[code_false_branch].value = code_false;
@@ -330,6 +381,11 @@ const Instruction * parse_expression(const char *iexpr, const Variable *ivariabl
     variables = ivariables;
 
     if (code != NULL) {
+        for (const Instruction *ip = code; ip->op != OP_HALT; ip++) {
+            if (ip->op == OP_PUSH_STR) {
+                free((void *) ip->str);
+            }
+        }
         free(code);
     }
     code = (Instruction *) malloc(MAX_CODE_SIZE * sizeof(Instruction *));
@@ -338,9 +394,10 @@ const Instruction * parse_expression(const char *iexpr, const Variable *ivariabl
         exit(EXIT_FAILURE);
     }
 
-    code_size = 0;
-    token = next_token();
+    expr_end = expr + strlen(expr);
+    next_token();
 
+    code_size = 0;
     parse_expr();
 
     emit(OP_HALT, 0);
