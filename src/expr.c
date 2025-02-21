@@ -22,6 +22,7 @@ void parse_cond_expr();
 Instruction *code = NULL; 
 int code_size;
 
+#define MAX_STR_SIZE    (32)
 #define MAX_CODE_SIZE   (1024)
 
 #define TO_COLON    (OP_HALT + 1)
@@ -36,8 +37,12 @@ int code_size;
 
 typedef struct {
     OpCode op;
-    char *str;
+    union {
+        char str[MAX_STR_SIZE];
+        double value;
+    };
 } Token;
+Token token;
 
 const Token op_symbols[] = {
     {.str = "+",    .op = OP_ADD},
@@ -59,12 +64,91 @@ const Token op_symbols[] = {
     {.str = ")",    .op = TO_RPAREN},
     {.str = "true", .op = TO_TRUE},
     {.str = "false",.op = TO_FALSE},
-    {.str = NULL,   .op = TO_END},
+    {.str = "\n",   .op = TO_END},
 };
 
 const Variable *variables;
 const char *expr;
-Token token = {.str = NULL, .op = TO_END};
+
+Token next_token() {
+    while (isspace(*expr)) {
+        expr++;
+    }
+
+    if (*expr == '\0') {
+        return (Token){.str = "\0", .op = TO_END};
+    }
+
+    if (*expr == '#') {
+        expr++;
+        const char *start = expr;
+        while (isdigit(*expr)) {
+            expr++;
+        }
+        int len = expr - start;
+        if (len >= MAX_STR_SIZE - 1) {
+            fprintf(stderr, "Error: Too long index number\n");
+            exit(EXIT_FAILURE);
+        }
+        char value[MAX_STR_SIZE];
+        strncpy(value, start, len);
+        value[len] = '\0';
+
+        token.op = TO_ID_IDX;
+        token.value = atoi(value);
+        return token;
+    }
+
+    if (isdigit(*expr)) {
+        const char *start = expr;
+        while (isdigit(*expr) || *expr == '.') {
+            expr++;
+        }
+        int len = expr - start;
+        if (len >= MAX_STR_SIZE - 1) {
+            fprintf(stderr, "Error: Too long number\n");
+            exit(EXIT_FAILURE);
+        }
+        char value[MAX_STR_SIZE];
+        strncpy(value, start, len);
+        value[len] = '\0';
+
+        char *endptr;
+        token.op = TO_NUMBER;
+        token.value = strtod(value, &endptr);
+        return token;
+    }
+
+    for (int i = 0; strlen(op_symbols[i].str); i++) {
+        const Token* item = &op_symbols[i];
+        if (strlen(item->str) && strncmp(expr, item->str, strlen(item->str)) == 0) {
+            expr += strlen(item->str);
+            token.op = item->op;
+            strncpy(token.str, item->str, strlen(item->str));
+            token.str[strlen(item->str)] = '\0';
+            return token;
+        }
+    }
+
+    if (isalpha(*expr)) {
+        const char *start = expr;
+        while (isalnum(*expr) || *expr == '_') {
+            expr++;
+        }
+        int len = expr - start;
+        if (len >= MAX_STR_SIZE - 1) {
+            fprintf(stderr, "Error: Too long string\n");
+            exit(EXIT_FAILURE);
+        }
+        token.op = TO_ID_NAME;
+        strncpy(token.str, start, len);
+        token.str[len] = '\0';
+        return token;
+    }
+
+    fprintf(stderr, "Error: Undefined valuebol '%s'\n", strndup(expr++, 1));
+    exit(EXIT_FAILURE);
+}
 
 void emit(OpCode op, int value) {
     if (code_size + 1 >= MAX_CODE_SIZE) {
@@ -75,62 +159,6 @@ void emit(OpCode op, int value) {
     code[code_size].op = op;
     code[code_size].value = value;
     code_size ++;
-}
-
-void cleanToken() {
-    if (token.str != NULL) {
-        free(token.str);
-        token.str = NULL;
-    }
-}
-
-Token next_token() {
-    cleanToken();
-
-    while (isspace(*expr)) {
-        expr++;
-    }
-
-    if (*expr == '\0') {
-        return (Token){TO_END, 0};
-    }
-
-    if (*expr == '#') {
-        expr++;
-        const char *start = expr;
-        while (isdigit(*expr)) {
-            expr++;
-        }
-        return (Token){TO_ID_IDX, strndup(start, expr - start)};
-    }
-
-    if (isdigit(*expr)) {
-        const char *start = expr;
-        while (isdigit(*expr)) {
-            expr++;
-        }
-        return (Token){TO_NUMBER, strndup(start, expr - start)};
-    }
-
-    for (int i = 0; op_symbols[i].str; i++) {
-        const Token* item = &op_symbols[i];
-        if (strlen(item->str) && strncmp(expr, item->str, strlen(item->str)) == 0) {
-            expr += strlen(item->str);
-            return (Token){item->op, strndup(item->str, strlen(item->str))};
-        }
-    }
-
-    if (isalpha(*expr)) {
-        const char *start = expr;
-        while (isalnum(*expr) || *expr == '_') {
-            expr++;
-        }
-        char *identifier = strndup(start, expr - start);
-        return (Token){TO_ID_NAME, identifier};
-    }
-
-    fprintf(stderr, "Error: Undefined valuebol '%s'\n", strndup(expr++, 1));
-    exit(EXIT_FAILURE);
 }
 
 void parse_expr() {
@@ -167,7 +195,7 @@ void parse_term() {
 void parse_factor() {
     switch (token.op) {
         case TO_NUMBER:
-            emit(OP_PUSH_NUM, atoi(token.str));
+            emit(OP_PUSH_NUM, token.value);
             token = next_token();
             break;
 
@@ -190,7 +218,7 @@ void parse_factor() {
         }
 
         case TO_ID_IDX:
-            emit(OP_PUSH_VAR, atoi(token.str));
+            emit(OP_PUSH_VAR, token.value);
             token = next_token();
             break;
 
@@ -316,8 +344,6 @@ const Instruction * parse_expression(const char *iexpr, const Variable *ivariabl
     parse_expr();
 
     emit(OP_HALT, 0);
-
-    cleanToken();
 
     return code;
 }
