@@ -11,12 +11,10 @@
 #define MAX_STACK_SIZE      (1024)
 #define STACK_SIZE_BUFFER   (10)
 
-const Variable *variables;
-
 const char *op_names[] = {
     "PUSH %d",
     "PUSH VAR %d",
-    "PUSH STR \"%s\"",
+    "PUSH STR '%s'",
     "ADD",
     "SUB",
     "MUL",
@@ -30,16 +28,18 @@ const char *op_names[] = {
     "AND",
     "OR",
     "NOT",
-    "JP %d",
-    "JPZ %d",
+    "JP %03d",
+    "JPZ %03d",
     "NOP",
     "EQ_STR",
     "HALT"
 };
 
+const Variable *variables;
+
 void print_instruction(const Instruction *instr) {
     const char *fmt = op_names[instr->op];
-    if (strstr(fmt, "%d")) {
+    if (strstr(fmt, "%d") || strstr(fmt, "%03d")) {
         printf(fmt, (int) instr->value);
     } else if (strstr(fmt, "%s")) {
         printf(fmt, instr->str);

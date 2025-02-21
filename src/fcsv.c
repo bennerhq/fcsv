@@ -31,34 +31,29 @@ Variable variables[MAX_LINE_ITEMS];
 int variables_size = 0;
 
 char *tokens[MAX_LINE_ITEMS];
-int tokens_pos[MAX_LINE_ITEMS];
-
-void replace_char(char *str, char find, char replace) {
-    while (*str) {
-        if (*str == find) {
-            *str = replace;
-        }
-        str++;
-    }
-}
 
 void tokenize_line(char *line) {
-    replace_char(line, '\n', '\0');
-
     int count = 0;
-    for (int i = 0; line[i] != '\0'; i++) {
-        if (line[i] == CSV_SEPERATOR) {
-            tokens_pos[count++] = i;
-        }
-    }
+    char *start = line;
+    char *end;
 
-    int start = 0;
-    for (int i = 0; i <= count; i++) {
-        int end = (i == count) ? strlen(line) : tokens_pos[i];
-        line[end] = '\0';
-        tokens[i] = &line[start];
+    while ((end = strchr(start, CSV_SEPERATOR)) != NULL) {
+        *end = '\0';
+        tokens[count++] = start;
         start = end + 1;
     }
+    tokens[count++] = start;
+
+    for (int i = 0; i < count; i++) {
+        char *token = tokens[i];
+        while (isspace((unsigned char)*token)) token++;
+        tokens[i] = token;
+
+        char *end = token + strlen(token) - 1;
+        while (end > token && isspace((unsigned char)*end)) end--;
+        *(end + 1) = '\0';
+    }
+    tokens[count] = NULL;
 }
 
 void assign_variables_name() {
@@ -173,7 +168,6 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 
     processed_size += strlen(headder);
 
-    replace_char(headder, '\n', '\0');
     tokenize_line(headder);
     assign_variables_name();
 
