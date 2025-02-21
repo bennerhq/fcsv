@@ -378,9 +378,9 @@ void parse_cond_expr() {
             fprintf(stderr, "Error: Expected ':' for conditional expression\n");
             exit(EXIT_FAILURE);
         }
-        int code_false = code_size;
-
         next_token(); // Skip ':'
+
+        int code_false = code_size;
         parse_expr();   // Parse false branch
 
         code[code_false_branch].value = code_false;
