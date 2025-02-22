@@ -32,6 +32,12 @@
     else if (sp[-1].type == VAR_STRING) {                                           \
         sp[-1].value = strncmp(sp[-1].str, sp[0].str, strlen(sp[0].str)) REL_OP 0;  \
     }                                                                               \
+    else if (sp[-1].type == VAR_DATE) {                                             \
+        struct tm tm1, tm2;                                                         \
+        strptime(sp[-1].str, DATE_FORMAT, &tm1);                                    \
+        strptime(sp[0].str, DATE_FORMAT, &tm2);                                     \
+        sp[-1].value = mktime(&tm1) REL_OP mktime(&tm2);                            \
+    }                                                                               \
     else {                                                                          \
         sp[-1].value = (sp[-1].value REL_OP sp[0].value);                           \
     }

@@ -35,7 +35,6 @@
 #define MAX_LINE_ITEMS  1024
 
 #define CSV_SEPERATOR   ','
-#define DATE_FORMAT     "%Y-%m-%dT%H:%M:%S"
 
 const Instruction *code; 
 

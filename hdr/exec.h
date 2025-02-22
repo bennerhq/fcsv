@@ -48,6 +48,8 @@
 #define VAR_UNKNOWN (VAR_BASE + 4)
 #define VAR_END     (VAR_BASE + 5)
 
+#define DATE_FORMAT     "%Y-%m-%dT%H:%M:%S"
+
 typedef struct {
     OpCode op;
     union {
