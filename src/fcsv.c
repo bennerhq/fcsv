@@ -27,10 +27,10 @@
 #include "../hdr/exec.h"
 #include "../hdr/expr.h"
 
-#define COLOR_RESET "\033[0m"
-#define COLOR_GREEN "\033[32m"
-#define COLOR_YELLOW "\033[33m"
-#define COLOR_CYAN "\033[36m"
+#define COLOR_RESET     "\033[0m"
+#define COLOR_GREEN     "\033[32m"
+#define COLOR_YELLOW    "\033[33m"
+#define COLOR_CYAN      "\033[36m"
 
 #define MAX_LINE_ITEMS  1024
 
@@ -67,15 +67,6 @@ void tokenize_line(char *line) {
     tokens[count] = NULL;
 }
 
-void assign_variables_name() {
-    int index = 0;
-    for (index = 0; tokens[index] != NULL; index++) {
-        variables[index].name = tokens[index];
-        variables[index].type = VAR_UNKNOWN;
-    }
-    variables[index].type = VAR_END;
-}
-
 int is_valid_double(const char *str) {
     char *endptr;
     strtod(str, &endptr);
@@ -85,6 +76,15 @@ int is_valid_double(const char *str) {
 int is_valid_iso_datetime(const char *str) {
     struct tm datetime;
     return strptime(str, "%Y-%m-%dT%H:%M:%S", &datetime) != NULL;
+}
+
+void assign_variables_name() {
+    int index = 0;
+    for (index = 0; tokens[index] != NULL; index++) {
+        variables[index].name = tokens[index];
+        variables[index].type = VAR_UNKNOWN;
+    }
+    variables[index].type = VAR_END;
 }
 
 int assign_variables_type() {
@@ -126,19 +126,6 @@ void assign_variables_value() {
             case VAR_UNKNOWN:
             case VAR_END:
                 break;
-        }
-    }
-}
-
-void print_variables() {
-    printf("Variables:\n");
-    for (int index = 0; tokens[index] != NULL; index ++) {
-        Variable *var = &variables[index];
-        printf("\t%d: %s = ", index, var->name);
-        if (var->type == VAR_NUMBER) {
-            printf("%f\n", var->value);
-        } else {
-            printf("'%s'\n", var->str);
         }
     }
 }

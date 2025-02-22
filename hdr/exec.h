@@ -17,6 +17,7 @@
 #define __EXEC_H__
 
 #include <time.h>
+#define DATE_FORMAT "%Y-%m-%dT%H:%M:%S"
 
 #define OpCode          int
 
@@ -73,6 +74,7 @@
 #define OP_OR_STR       (OP_BASE_STR + 11)
 #define OP_NOT_STR      (OP_BASE_STR + 12)
 
+#define DataType        int
 
 #define VAR_BASE        (100)
 #define VAR_NUMBER      (VAR_BASE + 0)
@@ -81,11 +83,6 @@
 #define VAR_IDX         (VAR_BASE + 3)
 #define VAR_UNKNOWN     (VAR_BASE + 4)
 #define VAR_END         (VAR_BASE + 5)
-
-
-#define DATE_FORMAT "%Y-%m-%dT%H:%M:%S"
-
-#define DataType    int
 
 typedef struct {
     OpCode op;
@@ -98,7 +95,7 @@ typedef struct {
 
 
 typedef struct {
-    OpCode type;
+    DataType type;
     char *name;
     union {
         const char *str;
