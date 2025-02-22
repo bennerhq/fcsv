@@ -42,6 +42,8 @@
     }                                                                               \
     sp[-1].type = VAR_NUMBER;
 
+
+    
 const char *op_names[] = {
     "PUSH %d",
     "PUSH %s [%d]",
@@ -119,6 +121,14 @@ double execute_code(const Instruction *code, const Variable *variables) {
         switch (ip->op) {
             case OP_NOP:
                 break;
+            case OP_JPZ:
+                if (!(*--sp).value) {
+                    ip = code + (int) ip->value - 1;
+                }
+                break;
+            case OP_JP:
+                ip = code + (int) ip->value - 1;
+                break;
             case OP_PUSH_NUM:
                 sp->type = VAR_NUMBER;
                 sp->value = ip->value;
@@ -134,23 +144,78 @@ double execute_code(const Instruction *code, const Variable *variables) {
                 break;
             case OP_ADD:
                 sp--;
-                sp[-1].value += sp[0].value;
+                if (sp[-1].type != sp[0].type) {
+                    sp[-1].value = 0;
+                }
+                else if (sp[-1].type == VAR_STRING) {
+                    size_t len1 = strlen(sp[-1].str);
+                    size_t len2 = strlen(sp[0].str);
+                    char *result = (char *) malloc(len1 + len2 + 1);
+                    if (result == NULL) {
+                        fprintf(stderr, "Memory allocation error\n");
+                        exit(EXIT_FAILURE);
+                    }
+                    strcpy(result, sp[-1].str);
+                    strcat(result, sp[0].str);
+                    free((void *) sp[-1].str);
+                    sp[-1].str = result;
+                } else {
+                    sp[-1].value += sp[0].value;
+                }
                 break;
             case OP_SUB:
                 sp--;
-                sp[-1].value -= sp[0].value;
+                if (sp[-1].type != sp[0].type) {
+                    sp[-1].value = 0;
+                }
+                else if (sp[-1].type == VAR_STRING) {
+                    char *pos = strstr(sp[-1].str, sp[0].str);
+                    if (pos) {
+                        size_t len1 = strlen(sp[-1].str);
+                        size_t len2 = strlen(sp[0].str);
+                        memmove(pos, pos + len2, len1 - len2 + 1);
+                    }
+                } else {
+                    sp[-1].value -= sp[0].value;
+                }
                 break;
             case OP_MUL:
                 sp--;
-                sp[-1].value *= sp[0].value;
+                if (sp[-1].type == VAR_STRING && sp[0].type == VAR_NUMBER) {
+                    int repeat = (int) sp[0].value;
+                    size_t len = strlen(sp[-1].str);
+                    char *result = (char *) malloc(len * repeat + 1);
+                    if (result == NULL) {
+                        fprintf(stderr, "Memory allocation error\n");
+                        exit(EXIT_FAILURE);
+                    }
+                    result[0] = '\0';
+                    for (int i = 0; i < repeat; i++) {
+                        strcat(result, sp[-1].str);
+                    }
+                    free((void *) sp[-1].str);
+                    sp[-1].str = result;
+                } else {
+                    sp[-1].value *= sp[0].value;
+                }
                 break;
             case OP_DIV:
                 sp--;
-                if (sp[0].value == 0) {
-                    fprintf(stderr, "Division by zero!\n");
-                    exit(EXIT_FAILURE);
+                if (sp[-1].type != sp[0].type) {
+                    sp[-1].value = 0;
                 }
-                sp[-1].value /= sp[0].value;
+                else if (sp[-1].type == VAR_STRING && sp[0].type == VAR_STRING) {
+                    char *pos = strstr(sp[-1].str, sp[0].str);
+                    if (pos) {
+                        *pos = '\0';
+                    }
+                } else {
+                    if (sp[0].value == 0) {
+                        fprintf(stderr, "Division by zero!\n");
+                        exit(EXIT_FAILURE);
+                    }
+                    sp[-1].value /= sp[0].value;
+                }
                 break;
             case OP_EQ:
                 OP_VAR_TYPE(==);
@@ -172,22 +237,38 @@ double execute_code(const Instruction *code, const Variable *variables) {
                 break;
             case OP_AND:
                 sp--;
-                sp[-1].value = (sp[-1].value && sp[0].value);
+                if (sp[-1].type != sp[0].type) {
+                    sp[-1].value = 0;
+                }
+                else if (sp[-1].type == VAR_STRING) {
+                    sp[-1].value = (strlen(sp[-1].str) > 0 && strlen(sp[0].str) > 0);
+                } else {
+                    sp[-1].value = (sp[-1].value && sp[0].value);
+                }
+                sp[-1].type = VAR_NUMBER;
                 break;
             case OP_OR:
                 sp--;
-                sp[-1].value = (sp[-1].value || sp[0].value);
+                if (sp[-1].type != sp[0].type) {
+                    sp[-1].value = 0;
+                }
+                else if (sp[-1].type == VAR_STRING) {
+                    sp[-1].value = (strlen(sp[-1].str) > 0 || strlen(sp[0].str) > 0);
+                } else {
+                    sp[-1].value = (sp[-1].value || sp[0].value);
+                }
+                sp[-1].type = VAR_NUMBER;
                 break;
             case OP_NOT:
-                sp[-1].value = !sp[-1].value;
-                break;
-            case OP_JPZ:
-                if (!(*--sp).value) {
-                    ip = code + (int) ip->value - 1;
+                if (sp[-1].type != sp[0].type) {
+                    sp[-1].value = 0;
                 }
-                break;
-            case OP_JP:
-                ip = code + (int) ip->value - 1;
+                else if (sp[-1].type == VAR_STRING) {
+                    sp[-1].value = (strlen(sp[-1].str) == 0);
+                } else {
+                    sp[-1].value = !sp[-1].value;
+                }
+                sp[-1].type = VAR_NUMBER;
                 break;
             case OP_EQ_STR:
                 sp--;
@@ -201,10 +282,14 @@ double execute_code(const Instruction *code, const Variable *variables) {
         }
     }
 
-    if (sp != stack + 1) {
+    sp --;
+    if (sp != stack) {
         fprintf(stderr, "No results!\n");
         exit(EXIT_FAILURE);
     }
 
-    return (--sp)->value != 0;
+    if (sp->type == VAR_STRING) {
+        return strlen(sp->str) > 0;
+    }
+    return sp->value != 0;
 }
