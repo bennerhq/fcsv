@@ -212,14 +212,20 @@ void emit_overflow() {
 
 void emit(OpCode op, double value, DataType type) {
     emit_overflow();
-    code[code_size++] = (Instruction){.op = op, .value = value, .type = type};
-    code[code_size].op = OP_HALT;
+    code[code_size++] = (Instruction){
+        .op = op, 
+        .value = value, 
+        .type = type
+    };
 }
 
 void emit_str(OpCode op, const char *str) {
     emit_overflow();
-    code[code_size++] = (Instruction){.op = op, .str = str, .type = VAR_STRING};
-    code[code_size].op = OP_HALT;
+    code[code_size++] = (Instruction){
+        .op = op, 
+        .str = str, 
+        .type = VAR_STRING
+    };
 }
 
 void emit_type(DataType data_type, OpCode op, DataType data_type_result) {
