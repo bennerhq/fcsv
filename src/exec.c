@@ -25,17 +25,16 @@
 
 #define OP_VAR_TYPE(REL_OP)                                                         \
     sp --;                                                                          \
-    if (sp[-1].type != sp[0].type ) {                                               \
-        fprintf(stderr, "Type mismatch!\n");                                        \
-        exit(EXIT_FAILURE);                                                         \
+    sp[-1].type = VAR_NUMBER;                                                       \
+    if (sp[-1].type != sp[0].type) {                                                \
+        sp[-1].value = 0;                                                           \
     }                                                                               \
-    else if (sp[-1].type == VAR_STRING && sp[0].type == VAR_STRING) {               \
+    else if (sp[-1].type == VAR_STRING) {                                           \
         sp[-1].value = strncmp(sp[-1].str, sp[0].str, strlen(sp[0].str)) REL_OP 0;  \
     }                                                                               \
     else {                                                                          \
         sp[-1].value = (sp[-1].value REL_OP sp[0].value);                           \
-    }                                                                               \
-    sp[-1].type = VAR_NUMBER;
+    }
 
 const char *op_names[] = {
     "PUSH %d",
