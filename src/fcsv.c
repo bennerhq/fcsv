@@ -83,8 +83,8 @@ int is_valid_double(const char *str) {
 }
 
 int is_valid_iso_datetime(const char *str) {
-    struct tm tm;
-    return strptime(str, "%Y-%m-%dT%H:%M:%S", &tm) != NULL;
+    struct tm datetime;
+    return strptime(str, "%Y-%m-%dT%H:%M:%S", &datetime) != NULL;
 }
 
 int assign_variables_type() {
@@ -96,8 +96,8 @@ int assign_variables_type() {
             if (var->type != VAR_NUMBER) type_changed = 1;
             var->type = VAR_NUMBER;
         } else if (is_valid_iso_datetime(tokens[index])) {
-            if (var->type != VAR_DATE) type_changed = 1;
-            var->type = VAR_DATE;
+            if (var->type != VAR_DATETIME) type_changed = 1;
+            var->type = VAR_DATETIME;
         } else {
             if (var->type != VAR_STRING) type_changed = 1;
             var->type = VAR_STRING;
@@ -119,8 +119,8 @@ void assign_variables_value() {
                 var->str = tokens[index];
                 break;
 
-            case VAR_DATE:
-                strptime(tokens[index], DATE_FORMAT, &var->tm);
+            case VAR_DATETIME:
+                strptime(tokens[index], DATE_FORMAT, &var->datetime);
                 break;
 
             case VAR_UNKNOWN:

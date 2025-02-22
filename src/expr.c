@@ -216,9 +216,9 @@ void emit(OpCode op, double value, DataType type) {
     code[code_size].op = OP_HALT;
 }
 
-void emit_str(OpCode op, const char *str, DataType data_type) {
+void emit_str(OpCode op, const char *str) {
     emit_overflow();
-    code[code_size++] = (Instruction){.op = op, .str = str, .type = data_type};
+    code[code_size++] = (Instruction){.op = op, .str = str, .type = VAR_STRING};
     code[code_size].op = OP_HALT;
 }
 
@@ -339,7 +339,7 @@ DataType parse_factor() {
             break;
 
         case TOK_VAR_STR:
-            emit_str(OP_PUSH_STR, token.str, VAR_STRING);
+            emit_str(OP_PUSH_STR, token.str);
             next_token();
             data_type = VAR_STRING;
             break;

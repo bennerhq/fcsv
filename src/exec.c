@@ -32,47 +32,9 @@ const char *op_names[] = {
     "JPZ  %03X",
     "HALT",
 
-    "ADD",
-    "SUB",
-    "MUL",
-    "DIV",
-    "NEQ",
-    "LE",
-    "GE",
-    "LT",
-    "GT",
-    "EQ",
-    "AND",
-    "OR",
-    "NOT",
-
-    "ADD#",
-    "SUB#",
-    "MUL#",
-    "DIV#",
-    "NEQ#",
-    "LE#",
-    "GE#",
-    "LT#",
-    "GT#",
-    "EQ#",
-    "AND#",
-    "OR#",
-    "NOT#",
-
-    "ADD$",
-    "SUB$",
-    "MUL$",
-    "DIV$",
-    "NEQ$",
-    "LE$",
-    "GE$",
-    "LT$",
-    "GT$",
-    "EQ$",
-    "AND$",
-    "OR$",
-    "NOT$",
+    "ADD",  "SUB",  "MUL",  "DIV",  "NEQ",  "LE",  "GE",  "LT",  "GT",  "EQ",  "AND",  "OR",  "NOT",
+    "ADD#", "SUB#", "MUL#", "DIV#", "NEQ#", "LE#", "GE#", "LT#", "GT#", "EQ#", "AND#", "OR#", "NOT#",
+    "ADD$", "SUB$", "MUL$", "DIV$", "NEQ$", "LE$", "GE$", "LT$", "GT$", "EQ$", "AND$", "OR$", "NOT$",
 };
 
 void print_instruction(const Instruction *instr, const Variable *variables) {
@@ -114,8 +76,12 @@ void dump_stack(Variable *stack, Variable *sp) {
             case VAR_STRING:
                 printf("%s\n", vp->str);
                 break;
-            case VAR_DATO:
-                printf("%s\n", vp->dato);
+            case VAR_DATETIME:
+                {
+                    char buffer[20];
+                    strftime(buffer, sizeof(buffer), DATE_FORMAT, &vp->datetime);
+                    printf("%s\n", buffer);
+                }
                 break;
             default:
                 printf("Unknown type\n");

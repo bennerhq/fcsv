@@ -77,7 +77,7 @@
 #define VAR_BASE        (100)
 #define VAR_NUMBER      (VAR_BASE + 0)
 #define VAR_STRING      (VAR_BASE + 1)
-#define VAR_DATE        (VAR_BASE + 2)
+#define VAR_DATETIME    (VAR_BASE + 2)
 #define VAR_IDX         (VAR_BASE + 3)
 #define VAR_UNKNOWN     (VAR_BASE + 4)
 #define VAR_END         (VAR_BASE + 5)
@@ -103,7 +103,7 @@ typedef struct {
     union {
         const char *str;
         double value;
-        struct tm tm;
+        struct tm datetime;
     };
 } Variable;
 
