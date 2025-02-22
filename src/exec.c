@@ -105,21 +105,21 @@ re_type:
         switch (op) {
             case OP_NOP:
                 break;
+            case OP_JP:
+                ip = code + (int) ip->value - 1;
+                break;
             case OP_JPZ:
                 if (!(*--sp).value) {
                     ip = code + (int) ip->value - 1;
                 }
                 break;
-            case OP_JP:
-                ip = code + (int) ip->value - 1;
+            case OP_PUSH_VAR:
+                (*sp++) = variables[(int) ip->value];
                 break;
             case OP_PUSH_NUM:
                 sp->type = VAR_NUMBER;
                 sp->value = ip->value;
                 sp++;
-                break;
-            case OP_PUSH_VAR:
-                (*sp++) = variables[(int) ip->value];
                 break;
             case OP_PUSH_STR:
                 sp->type = VAR_STRING;
