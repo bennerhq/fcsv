@@ -14,7 +14,7 @@
  * expr.c - Expression parser
  */
 
- #include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -32,11 +32,11 @@ void parse_rel_expr();
 void parse_arithmetic_expr();
 void parse_cond_expr();
 
-#define IS_INT       "0123456789"
-#define IS_DOUBLE    IS_INT "."
-#define IS_ALPHA     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
-#define IS_ALNUM     IS_ALPHA IS_INT
-#define IS_SPACE     " \t\n"
+#define IS_SPACE        " \t\n"
+#define IS_INT          "0123456789"
+#define IS_DOUBLE       IS_INT "."
+#define IS_ALPHA        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+#define IS_ALPHA_INT    IS_ALPHA IS_INT
 
 #define MAX_STR_SIZE    (32)
 #define MAX_CODE_SIZE   (1024)
@@ -192,8 +192,8 @@ void next_token() {
         }
     }
 
-    if (strchr(IS_ALNUM, *expr)) {
-        set_token(TOK_ID_NAME, IS_ALNUM, 0);
+    if (strchr(IS_ALPHA, *expr)) {
+        set_token(TOK_ID_NAME, IS_ALPHA_INT, 0);
         return;
     }
 
