@@ -21,15 +21,15 @@
 #include "../hdr/exec.h"
 #include "../hdr/expr.h"
 
-void parse_expr();
-void parse_term();
-void parse_factor();
-void parse_bool_expr();
-void parse_bool_term();
-void parse_bool_factor();
-void parse_rel_expr();
-void parse_arithmetic_expr();
-void parse_cond_expr();
+DataType parse_expr();
+DataType parse_term();
+DataType parse_factor();
+DataType parse_bool_expr();
+DataType parse_bool_term();
+DataType parse_bool_factor();
+DataType parse_rel_expr();
+DataType parse_arithmetic_expr();
+DataType parse_cond_expr();
 
 #define IS_SPACE        " \t\n"
 #define IS_INT          "0123456789"
@@ -50,10 +50,12 @@ void parse_cond_expr();
 #define TOK_ID_NAME     (TOK_BASE + 7)
 #define TOK_VAR_IDX     (TOK_BASE + 8)
 #define TOK_VAR_STR     (TOK_BASE + 9)
-#define TOK_END         (TOK_BASE + 10)
+#define TOK_CONDITION   (TOK_BASE + 10) 
+#define TOK_END         (TOK_BASE + 11)
 
 typedef struct {
     OpCode op;
+    DataType type;
     union {
         char name[MAX_STR_SIZE];
         const char *str;
@@ -72,7 +74,6 @@ const char *expr_end;
 
 const Token op_symbols[] = {
     {.str = "+",    .op = OP_ADD},
-    {.str = "+",    .op = OP_ADD},
     {.str = "-",    .op = OP_SUB},
     {.str = "*",    .op = OP_MUL},
     {.str = "/",    .op = OP_DIV},
@@ -85,7 +86,7 @@ const Token op_symbols[] = {
     {.str = "&",    .op = OP_AND},
     {.str = "|",    .op = OP_OR},
     {.str = "!",    .op = OP_NOT},
-    {.str = "?",    .op = OP_JPZ},
+    {.str = "?",    .op = TOK_CONDITION},
     {.str = ":",    .op = TOK_COLON},
     {.str = "(",    .op = TOK_LPAREN},
     {.str = ")",    .op = TOK_RPAREN},
@@ -110,8 +111,6 @@ void set_token(OpCode op, const char *match, int len) {
         exit(EXIT_FAILURE);
     }
 
-    token.op = op;
-
     char value[MAX_STR_SIZE];
     strncpy(value, start, len);
     value[len] = '\0';
@@ -120,10 +119,16 @@ void set_token(OpCode op, const char *match, int len) {
         char *endptr;
         token.value = strtod(value, &endptr);
         if (*endptr != '\0') token.value = 0; // FIXME
+        token.type = VAR_NUMBER;
+    }
+    else if (op == TOK_TRUE || op == TOK_FALSE) {
+        token.type = VAR_NUMBER;
     }
     else {
         strcpy(token.name, value);
+        token.type = VAR_STRING;
     }
+    token.op = op;
 }
 
 void next_token_str(char find) {
@@ -199,64 +204,113 @@ void next_token() {
 }
 
 void emit_overflow() {
-    if (code_size + 1 >= MAX_CODE_SIZE) {
+    if (code_size >= MAX_CODE_SIZE - 1) {
         fprintf(stderr, "Error: code array overflow\n");
         exit(EXIT_FAILURE);
     }
 }
 
-void emit(OpCode op, double value) {
+void emit(OpCode op, double value, DataType type) {
     emit_overflow();
-
-    code[code_size].op = op;
-    code[code_size].value = value;
-    code_size ++;
+    code[code_size++] = (Instruction){.op = op, .value = value, .type = type};
+    code[code_size].op = OP_HALT;
 }
 
-void emit_str(OpCode op, const char *str) {
+void emit_str(OpCode op, const char *str, DataType data_type) {
     emit_overflow();
-
-    code[code_size].op = op;
-    code[code_size].str = str;
-    code_size ++;
+    code[code_size++] = (Instruction){.op = op, .str = str, .type = data_type};
+    code[code_size].op = OP_HALT;
 }
 
-void parse_expr() {
+void emit_type(DataType data_type, OpCode op, DataType data_type_result) {
+    switch (data_type) {
+        case VAR_STRING:
+            emit(OP_BASE_STR + (op - OP_BASE), 0, data_type_result);
+            break;
+        case VAR_NUMBER:
+            emit(OP_BASE_NUM + (op - OP_BASE), 0, data_type_result);
+            break;
+        default:
+            fprintf(stderr, "Unknown instruction type\n");
+            exit(EXIT_FAILURE);
+    }
+}
+
+DataType parse_expr() {
+    DataType data_type = VAR_UNKNOWN;
+
     if (token.op == TOK_TRUE || token.op == TOK_FALSE || 
         token.op == OP_NOT || token.op == TOK_LPAREN || 
         token.op == TOK_ID_NAME || token.op == TOK_VAR_IDX ||
         token.op == TOK_NUMBER || token.op == TOK_VAR_STR) {
-        parse_cond_expr();
+        data_type = parse_cond_expr();
     } else {
-        parse_arithmetic_expr();
+        data_type = parse_arithmetic_expr();
     }
+
+    return data_type;
 }
 
-void parse_arithmetic_expr() {
-    parse_term();
+DataType parse_arithmetic_expr() {
+    DataType data_type_left = parse_term();
     while (token.op == OP_ADD || token.op == OP_SUB) {
         OpCode op = token.op;
+
         next_token();
-        parse_term();
-        emit(op, 0);
+        DataType data_type_right = parse_term();
+
+        if (data_type_left != data_type_right) {
+            fprintf(stderr, "Type error: Mismatched types in arithmetic expression\n");
+            exit(EXIT_FAILURE);
+        }
+
+        if (data_type_left == VAR_STRING) {
+            emit_type(data_type_left, op, VAR_NUMBER);
+        }
+        else {
+            emit_type(data_type_left, op, VAR_NUMBER);
+        }
     }
+    return data_type_left;
 }
 
-void parse_term() {
-    parse_factor();
+DataType parse_term() {
+    DataType data_type_left = parse_factor();
+
     while (token.op == OP_MUL || token.op == OP_DIV) {
         OpCode op = token.op;
+
         next_token();
-        parse_factor();
-        emit(op, 0);
+        DataType data_type_right = parse_term();
+
+        if (data_type_left == VAR_STRING) {
+            if (op == OP_MUL) {
+                if (data_type_right != VAR_NUMBER) {
+                    fprintf(stderr, "Type error: Multiplay string with number!\n");
+                    exit(EXIT_FAILURE);
+                }
+                emit(OP_MUL_STR, 0, VAR_STRING);
+            }
+            else {
+                emit(OP_DIV_STR, 0, VAR_STRING);
+            }
+        }
+        else {
+            emit_type(data_type_left, op, VAR_STRING);
+        }
     }
+
+    return data_type_left;
 }
 
-void parse_factor() {
+DataType parse_factor() {
+    DataType data_type = VAR_UNKNOWN;
+
     switch (token.op) {
         case TOK_NUMBER:
-            emit(OP_PUSH_NUM, token.value);
+            emit(OP_PUSH_NUM, token.value, VAR_NUMBER);
             next_token();
+            data_type = VAR_NUMBER;
             break;
 
         case TOK_ID_NAME: {
@@ -268,7 +322,8 @@ void parse_factor() {
                 }
             }
             if (var_index != -1) {
-                emit(OP_PUSH_VAR, var_index);
+                data_type = variables[var_index].type;
+                emit(OP_PUSH_VAR, var_index, data_type);
             } else {
                 fprintf(stderr, "Error: Undefined variable '%s'\n", token.name);
                 exit(EXIT_FAILURE);
@@ -278,18 +333,20 @@ void parse_factor() {
         }
 
         case TOK_VAR_IDX:
-            emit(OP_PUSH_VAR, token.value);
+            emit(OP_PUSH_VAR, token.value, VAR_NUMBER);
             next_token();
+            data_type = VAR_NUMBER;
             break;
 
         case TOK_VAR_STR:
-            emit_str(OP_PUSH_STR, token.str);
+            emit_str(OP_PUSH_STR, token.str, VAR_STRING);
             next_token();
+            data_type = VAR_STRING;
             break;
 
         case TOK_LPAREN:
             next_token();
-            parse_expr();
+            data_type = parse_expr();
             if (token.op != TOK_RPAREN) {
                 fprintf(stderr, "Error: Expected ')'\n");
                 exit(EXIT_FAILURE);
@@ -298,49 +355,69 @@ void parse_factor() {
             break;
 
         default:
+            printf("*** ERROR: UPS.... token.op: %d\n", token.op);
             break;
     }
+
+    return data_type;
 }
 
-void parse_bool_expr() {
-    parse_bool_term();
+DataType parse_bool_expr() {
+    DataType data_type_left = parse_bool_term();
     while (token.op == OP_OR) {
         next_token();
-        parse_bool_term();
-        emit(OP_OR, 0);
+        DataType data_type_right = parse_bool_term();
+        if (data_type_left != data_type_right) {
+            fprintf(stderr, "Type error: Mismatched types in boolean expression\n");
+            exit(EXIT_FAILURE);
+        }
+        emit_type(data_type_left, OP_OR, VAR_NUMBER);
     }
+    return data_type_left;
 }
 
-void parse_bool_term() {
-    parse_bool_factor();
+DataType parse_bool_term() {
+    DataType data_type_left = parse_bool_factor();
     while (token.op == OP_AND) {
         next_token();
-        parse_bool_factor();
-        emit(OP_AND, 0);
+        DataType data_type_right = parse_bool_factor();
+
+        if (data_type_left != data_type_right) {
+            fprintf(stderr, "Type error: Mismatched types in boolean term\n");
+            exit(EXIT_FAILURE);
+        }
+
+        emit_type(data_type_left, OP_AND, VAR_NUMBER);
+        data_type_left = VAR_NUMBER;
     }
+    return data_type_left;
 }
 
-void parse_bool_factor() {
+DataType parse_bool_factor() {
+    DataType data_type = VAR_UNKNOWN;
+
     switch (token.op) {
         case TOK_TRUE:
-            emit(OP_PUSH_NUM, 1);
+            emit(OP_PUSH_NUM, 1, VAR_NUMBER);
             next_token();
+            data_type = VAR_NUMBER;
             break;
 
         case TOK_FALSE:
-            emit(OP_PUSH_NUM, 0);
+            emit(OP_PUSH_NUM, 0, VAR_NUMBER);
             next_token();
+            data_type = VAR_NUMBER;
             break;
 
         case OP_NOT:
             next_token();
-            parse_bool_factor();
-            emit(OP_NOT, 0);
+            data_type = parse_bool_factor();
+            emit(OP_NOT, 0, VAR_NUMBER);
             break;
 
         case TOK_LPAREN:
             next_token();
-            parse_expr();
+            data_type = parse_expr();
             if (token.op != TOK_RPAREN) {
                 fprintf(stderr, "Error: Expected ')'\n");
                 exit(EXIT_FAILURE);
@@ -349,48 +426,69 @@ void parse_bool_factor() {
             break;
 
         default:
-            parse_rel_expr();
+            data_type = parse_rel_expr();
             break;
     }
+
+    return data_type;
 }
 
-void parse_rel_expr() {
-    parse_arithmetic_expr();
+DataType parse_rel_expr() {
+    DataType data_type_left = parse_arithmetic_expr();
     if (token.op == OP_EQ || token.op == OP_NEQ || 
         token.op == OP_LT || token.op == OP_GT || 
         token.op == OP_LE || token.op == OP_GE) {
         OpCode op = token.op;
+
         next_token();
-        parse_arithmetic_expr();
-        emit(op, 0);
-    }
-}
+        DataType data_type_right = parse_arithmetic_expr();
 
-void parse_cond_expr() {
-    parse_bool_expr();
-    if (token.op == OP_JPZ) {
-        next_token();
-
-        int code_false_branch = code_size;
-        emit(OP_JPZ, 0);
-
-        parse_expr();   // Parse true branch
-
-        int code_jump_end = code_size;
-        emit(OP_JP, 0);
-
-        if (token.op != TOK_COLON) {
-            fprintf(stderr, "Error: Expected ':' for conditional expression\n");
+        if (data_type_left != data_type_right) {
+            fprintf(stderr, "Type error: Mismatched types in relational expression\n");
             exit(EXIT_FAILURE);
         }
-        next_token(); // Skip ':'
 
-        int code_false = code_size;
-        parse_expr();   // Parse false branch
-
-        code[code_false_branch].value = code_false;
-        code[code_jump_end].value = code_size;
+        emit_type(data_type_left, op, VAR_NUMBER);
+        data_type_left = VAR_NUMBER;
     }
+
+    return data_type_left;
+}
+
+DataType parse_cond_expr() {
+    DataType data_type = parse_bool_expr();
+    if (token.op != TOK_CONDITION) {
+        return data_type;
+    }
+
+    next_token();
+
+    int code_false_branch = code_size;
+    emit(OP_JPZ, 0, VAR_UNKNOWN);
+
+    DataType data_type_true = parse_expr();   // Parse true branch
+
+    int code_jump_end = code_size;
+    emit(OP_JP, 0, VAR_UNKNOWN);
+
+    if (token.op != TOK_COLON) {
+        fprintf(stderr, "Error: Expected ':' for conditional expression\n");
+        exit(EXIT_FAILURE);
+    }
+    next_token(); // Skip ':'
+
+    int code_false = code_size;
+    DataType data_type_false = parse_expr();   // Parse false branch
+
+    if (data_type_true != data_type_false) {
+        fprintf(stderr, "Type error: Mismatched types in condition expression\n");
+        exit(EXIT_FAILURE);
+    }
+
+    code[code_false_branch].value = code_false;
+    code[code_jump_end].value = code_size;
+
+    return data_type_true;
 }
 
 const Instruction * parse_expression(const char *iexpr, const Variable *ivariables) {
@@ -417,7 +515,7 @@ const Instruction * parse_expression(const char *iexpr, const Variable *ivariabl
     next_token();
     parse_expr();
 
-    emit(OP_HALT, 0);
+    emit(OP_HALT, 0, VAR_UNKNOWN);
 
     return code;
 }
