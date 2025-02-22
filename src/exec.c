@@ -23,7 +23,7 @@
 #define MAX_STACK_SIZE      (1024)
 #define STACK_SIZE_BUFFER   (10)
 
-#define OP_VAR_TYPE(REL_OP)                                                         \
+#define OP_VAR_TYPE         (REL_OP)                                                \
     sp --;                                                                          \
     sp[-1].type = VAR_NUMBER;                                                       \
     if (sp[-1].type != sp[0].type) {                                                \
