@@ -38,8 +38,8 @@
 
 const char *op_names[] = {
     "PUSH %d",
-    "PUSH VAR %d",
-    "PUSH STR '%s'",
+    "PUSH %s [%d]",
+    "PUSH '%s'",
     "ADD",
     "SUB",
     "MUL",
@@ -53,8 +53,8 @@ const char *op_names[] = {
     "AND",
     "OR",
     "NOT",
-    "JP %03X",
-    "JPZ %03X",
+    "JP   %03X",
+    "JPZ  %03X",
     "NOP",
     "EQ_STR",
     "HALT"
@@ -64,16 +64,18 @@ const Variable *variables;
 
 void print_instruction(const Instruction *instr) {
     const char *fmt = op_names[instr->op];
-    if (strstr(fmt, "%d") || strstr(fmt, "%03X")) {
-        printf(fmt, (int) instr->value);
-    } else if (strstr(fmt, "%s")) {
-        printf(fmt, instr->str);
-    } else {
-        printf("%s", fmt);
-    }
 
     if (instr->op == OP_PUSH_VAR) {
-        printf(" '%s'", variables[(int) instr->value].name);
+        printf(fmt, variables[(int) instr->value].name, (int) instr->value);
+    }
+    else if (strstr(fmt, "%d") || strstr(fmt, "%03X")) {
+        printf(fmt, (int) instr->value);
+    } 
+    else if (strstr(fmt, "%s")) {
+        printf(fmt, instr->str);
+    } 
+    else {
+        printf("%s", fmt);
     }
 
     printf("\n");
@@ -84,7 +86,7 @@ void print_code(const Instruction *code) {
     do {
         ip ++;
 
-        printf("%03X\t", (int) (ip - code));
+        printf("0x%03X\t", (int) (ip - code));
         print_instruction(ip);
      } while (ip->op != OP_HALT);
 }
