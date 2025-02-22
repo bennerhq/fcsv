@@ -40,17 +40,17 @@ void parse_cond_expr();
 #define MAX_STR_SIZE    (32)
 #define MAX_CODE_SIZE   (1024)
 
-#define TOK_BASE     (1000)
-#define TOK_COLON    (TOK_BASE + 1)
-#define TOK_LPAREN   (TOK_BASE + 2)
-#define TOK_RPAREN   (TOK_BASE + 3)
-#define TOK_TRUE     (TOK_BASE + 4)
-#define TOK_FALSE    (TOK_BASE + 5)
-#define TOK_NUMBER   (TOK_BASE + 6)
-#define TOK_ID_NAME  (TOK_BASE + 7)
-#define TOK_VAR_IDX  (TOK_BASE + 8)
-#define TOK_VAR_STR  (TOK_BASE + 9)
-#define TOK_END      (TOK_BASE + 10)
+#define TOK_BASE        (1000)
+#define TOK_COLON       (TOK_BASE + 1)
+#define TOK_LPAREN      (TOK_BASE + 2)
+#define TOK_RPAREN      (TOK_BASE + 3)
+#define TOK_TRUE        (TOK_BASE + 4)
+#define TOK_FALSE       (TOK_BASE + 5)
+#define TOK_NUMBER      (TOK_BASE + 6)
+#define TOK_ID_NAME     (TOK_BASE + 7)
+#define TOK_VAR_IDX     (TOK_BASE + 8)
+#define TOK_VAR_STR     (TOK_BASE + 9)
+#define TOK_END         (TOK_BASE + 10)
 
 typedef struct {
     OpCode op;
@@ -62,7 +62,16 @@ typedef struct {
 } Token;
 Token token;
 
+Instruction *code = NULL; 
+int code_size;
+
+const Variable *variables;
+
+const char *expr;
+const char *expr_end;
+
 const Token op_symbols[] = {
+    {.str = "+",    .op = OP_ADD},
     {.str = "+",    .op = OP_ADD},
     {.str = "-",    .op = OP_SUB},
     {.str = "*",    .op = OP_MUL},
@@ -85,15 +94,7 @@ const Token op_symbols[] = {
     {.str = "",     .op = TOK_END},
 };
 
-Instruction *code = NULL; 
-int code_size;
-
-const Variable *variables;
-
-const char *expr;
-const char *expr_end;
-
-int set_token(OpCode op, const char *match, int len) {
+void set_token(OpCode op, const char *match, int len) {
     const char *start = expr;
     if (match) {
         while (expr < expr_end && strchr(match, *expr)) {
@@ -107,7 +108,6 @@ int set_token(OpCode op, const char *match, int len) {
     if (len >= MAX_STR_SIZE - 1) {
         fprintf(stderr, "Error: String too long %s\n", start);
         exit(EXIT_FAILURE);
-        return 0;
     }
 
     token.op = op;
@@ -119,13 +119,11 @@ int set_token(OpCode op, const char *match, int len) {
     if (op == TOK_NUMBER || op == TOK_VAR_IDX) {
         char *endptr;
         token.value = strtod(value, &endptr);
-        if (*endptr != '\0') return 0;
+        if (*endptr != '\0') token.value = 0; // FIXME
     }
     else {
         strcpy(token.name, value);
     }
-
-    return 1;
 }
 
 void next_token_str(char find) {

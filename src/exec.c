@@ -23,9 +23,8 @@
 #define MAX_STACK_SIZE      (1024)
 #define STACK_SIZE_BUFFER   (10)
 
-#define OP_VAR_TYPE         (REL_OP)                                                \
+#define OP_VAR_TYPE(REL_OP)                                                         \
     sp --;                                                                          \
-    sp[-1].type = VAR_NUMBER;                                                       \
     if (sp[-1].type != sp[0].type) {                                                \
         sp[-1].value = 0;                                                           \
     }                                                                               \
@@ -40,7 +39,8 @@
     }                                                                               \
     else {                                                                          \
         sp[-1].value = (sp[-1].value REL_OP sp[0].value);                           \
-    }
+    }                                                                               \
+    sp[-1].type = VAR_NUMBER;
 
 const char *op_names[] = {
     "PUSH %d",
@@ -95,6 +95,17 @@ void print_code(const Instruction *code, const Variable *variables) {
      } while (ip->op != OP_HALT);
 }
 
+void dump_stack(Variable *stack, Variable *sp) {
+    for (Variable *vp = stack; vp < sp; vp++) {
+        printf("%d: %d ", (int) (vp - stack), (int) vp->type);
+        if (vp->type == VAR_NUMBER) {
+            printf("%f\n", vp->value);
+        } else {
+            printf("%s\n", vp->str);
+        }
+    }
+}
+
 double execute_code(const Instruction *code, const Variable *variables) {
     Variable stack[MAX_STACK_SIZE];
     Variable *sp = stack;
@@ -109,16 +120,16 @@ double execute_code(const Instruction *code, const Variable *variables) {
             case OP_NOP:
                 break;
             case OP_PUSH_NUM:
-                (*sp).type = VAR_NUMBER;
-                (*sp).value = ip->value;
+                sp->type = VAR_NUMBER;
+                sp->value = ip->value;
                 sp++;
                 break;
             case OP_PUSH_VAR:
                 (*sp++) = variables[(int) ip->value];
                 break;
             case OP_PUSH_STR:
-                (*sp).type = VAR_STRING;
-                (*sp).str = ip->str;
+                sp->type = VAR_STRING;
+                sp->str = ip->str;
                 sp++;
                 break;
             case OP_ADD:
