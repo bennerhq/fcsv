@@ -368,35 +368,28 @@ DataType parse_factor() {
     return data_type;
 }
 
-DataType parse_bool_expr() {
-    DataType data_type_left = parse_bool_term();
-    while (token.op == OP_OR) {
+DataType parse_bool(OpCode op, DataType (*parse_bool_func)()) {
+    DataType data_type_left = parse_bool_func();
+    while (token.op == op) {
         next_token();
-        DataType data_type_right = parse_bool_term();
+        DataType data_type_right = parse_bool_func();
+
         if (data_type_left != data_type_right) {
             fprintf(stderr, "Type error: Mismatched types in boolean expression\n");
             exit(EXIT_FAILURE);
         }
-        emit_type(data_type_left, OP_OR, VAR_NUMBER);
+
+        emit_type(data_type_left, op, VAR_NUMBER);
     }
     return data_type_left;
 }
 
+DataType parse_bool_expr() {
+    return parse_bool(OP_OR, parse_bool_term);
+}
+
 DataType parse_bool_term() {
-    DataType data_type_left = parse_bool_factor();
-    while (token.op == OP_AND) {
-        next_token();
-        DataType data_type_right = parse_bool_factor();
-
-        if (data_type_left != data_type_right) {
-            fprintf(stderr, "Type error: Mismatched types in boolean term\n");
-            exit(EXIT_FAILURE);
-        }
-
-        emit_type(data_type_left, OP_AND, VAR_NUMBER);
-        data_type_left = VAR_NUMBER;
-    }
-    return data_type_left;
+    return parse_bool(OP_AND, parse_bool_factor);
 }
 
 DataType parse_bool_factor() {
