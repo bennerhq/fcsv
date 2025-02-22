@@ -13,9 +13,9 @@
 /**
  * exec.c - Execution of the code
  */
- #include <stdio.h>
- #include <stdlib.h>
- #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "../hdr/exec.h"
 #include "../hdr/expr.h"
@@ -66,9 +66,7 @@ const char *op_names[] = {
     "HALT"
 };
 
-const Variable *variables;
-
-void print_instruction(const Instruction *instr) {
+void print_instruction(const Instruction *instr, const Variable *variables) {
     const char *fmt = op_names[instr->op];
 
     if (instr->op == OP_PUSH_VAR) {
@@ -87,19 +85,17 @@ void print_instruction(const Instruction *instr) {
     printf("\n");
 }
 
-void print_code(const Instruction *code) {
+void print_code(const Instruction *code, const Variable *variables) {
     const Instruction *ip = code - 1;
     do {
         ip ++;
 
         printf("0x%03X\t", (int) (ip - code));
-        print_instruction(ip);
+        print_instruction(ip, variables);
      } while (ip->op != OP_HALT);
 }
 
-double execute_code(const Instruction *code, const Variable *ivariables) {
-    variables = ivariables;
-
+double execute_code(const Instruction *code, const Variable *variables) {
     Variable stack[MAX_STACK_SIZE];
     Variable *sp = stack;
 

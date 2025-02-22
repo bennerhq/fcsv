@@ -193,7 +193,7 @@ void process_csv(const char *input_filename, const char *output_filename, const 
             assign_variables_type();
 
             code = parse_expression(expr, variables);
-            print_code(code);
+            print_code(code, variables);
         }
         assign_variables_value();
 

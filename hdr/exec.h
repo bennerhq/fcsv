@@ -48,7 +48,7 @@
 #define VAR_UNKNOWN (VAR_BASE + 4)
 #define VAR_END     (VAR_BASE + 5)
 
-#define DATE_FORMAT     "%Y-%m-%dT%H:%M:%S"
+#define DATE_FORMAT "%Y-%m-%dT%H:%M:%S"
 
 typedef struct {
     OpCode op;
@@ -68,7 +68,7 @@ typedef struct {
     };
 } Variable;
 
-void print_code(const Instruction *code);
+void print_code(const Instruction *code, const Variable *variables);
 double execute_code(const Instruction *code, const Variable *variables);
 
 #endif /* __EXEC_H__ */
