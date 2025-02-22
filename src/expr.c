@@ -115,13 +115,13 @@ void set_token(OpCode op, const char *match, int len) {
     strncpy(value, start, len);
     value[len] = '\0';
 
-    if (op == TOK_NUMBER || op == TOK_VAR_IDX) {
+    if (op == TOK_TRUE || op == TOK_FALSE) {
+        token.type = VAR_NUMBER;
+    }
+    else if (op == TOK_NUMBER || op == TOK_VAR_IDX) {
         char *endptr;
         token.value = strtod(value, &endptr);
         if (*endptr != '\0') token.value = 0; // FIXME
-        token.type = VAR_NUMBER;
-    }
-    else if (op == TOK_TRUE || op == TOK_FALSE) {
         token.type = VAR_NUMBER;
     }
     else {
