@@ -27,7 +27,6 @@ The core functionality of `fcsv` is implemented in C, ensuring high performance 
 
 ## TO-DO
 
-- Smarter handeling of typed variables in expression evalueation
 - Control CSV delimiters from cli
 - Handle misformatted CSV files
 - Handle CSV with and without headline
