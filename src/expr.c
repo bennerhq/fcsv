@@ -129,6 +129,28 @@ int set_token(OpCode op, const char *match, int len) {
     return 1;
 }
 
+void next_token_str(char find) {
+    expr++;
+    const char *start = expr;
+
+    while (*expr != find && expr < expr_end) {
+        expr++;
+    }
+
+    if (*expr != find) {
+        fprintf(stderr, "Error: Can't find trailing '%c'\n", find);
+        exit(EXIT_FAILURE);
+    }
+
+    int len = expr - start;
+    char *str = (char *) malloc(len + 1);
+    strncpy(str, start, len);
+    token.op = TOK_VAR_STR;
+    token.str = str;
+
+    expr ++;
+}
+
 void next_token() {
     while (expr < expr_end && strchr(IS_SPACE, *expr)) {
         expr++;
@@ -140,31 +162,17 @@ void next_token() {
     }
 
     if (*expr == '"') {
-        expr++;
-        const char *start = expr;
+        next_token_str('"');
+        return;
+    }
 
-        while (*expr != '"' && expr < expr_end) {
-            expr++;
-        }
-
-        if (*expr != '"') {
-            fprintf(stderr, "Error: Expected '\"'\n");
-            exit(EXIT_FAILURE);
-        }
-
-        int len = expr - start;
-        char *str = (char *) malloc(len + 1);
-        strncpy(str, start, len);
-        token.op = TOK_VAR_STR;
-        token.str = str;
-
-        expr ++;
+    if (*expr == '\'') {
+        next_token_str('\'');
         return;
     }
 
     if (*expr == '#') {
         expr++;
-        
         set_token(TOK_VAR_IDX, IS_INT, 0);
         return;
     }
@@ -406,10 +414,10 @@ const Instruction * parse_expression(const char *iexpr, const Variable *ivariabl
         exit(EXIT_FAILURE);
     }
 
-    expr_end = expr + strlen(expr);
-    next_token();
-
     code_size = 0;
+    expr_end = expr + strlen(expr);
+
+    next_token();
     parse_expr();
 
     emit(OP_HALT, 0);
