@@ -16,7 +16,7 @@
 #define MALLOC_DEBUG       (1)
 #define MALLOC_TRACKING    (0)
 
-#if MALLOC_DEBUG == 1
+#if MALLOC_DEBUG
     void *debug_malloc(size_t size, const char *file, int line);
     void debug_free(void *ptr, const char *file, int line);
     void debug_memory_leaks(const char *file, int line);

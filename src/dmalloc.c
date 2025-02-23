@@ -87,7 +87,7 @@ void *debug_malloc(size_t size, const char *file, int line) {
 
         debug_check_ptr(ptr, file, line);
 
-#ifdef MALLOC_TRACKING
+#if MALLOC_TRACKING
         fprintf(stderr, COLOR_GREEN "malloc %p at %s:%d\n" COLOR_RESET, ptr, file, line);
 #endif
         return (char *)ptr;
@@ -108,8 +108,8 @@ void debug_free(void *user_ptr, const char *file, int line) {
             MemTrack *to_free = *current;
             *current = (*current)->next;
             free(to_free);
-#ifdef MALLOC_TRACKING
-            fprintf(stderr, COLOR_GREEN "mfree %p at %s:%d\n" COLOR_RESET, ptr, file, line);
+#if MALLOC_TRACKING
+            fprintf(stderr, COLOR_GREEN "free %p at %s:%d\n" COLOR_RESET, ptr, file, line);
 #endif
             break;
         }
