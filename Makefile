@@ -9,8 +9,11 @@ TARGET = fcsv
 
 # Define the directories
 SRCDIR = src
-HEADERDIR = header
+HEADERDIR = hdr
 OBJDIR = obj
+
+# Define the header files
+HEADERS = $(wildcard $(HEADERDIR)/*.h)
 
 # Define the source files
 SRCS = $(wildcard $(SRCDIR)/*.c) $(wildcard *.c)
@@ -30,7 +33,7 @@ $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Compile the source files into object files
-$(OBJDIR)/%.o: $(SRCDIR)/%.c
+$(OBJDIR)/%.o: $(SRCDIR)/%.c $(HEADERS)
 	$(CC) $(CFLAGS) -I$(HEADERDIR) -c $< -o $@
 
 # Clean up the build files
