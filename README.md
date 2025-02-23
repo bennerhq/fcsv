@@ -7,7 +7,7 @@ It's written in native C, with very limited dependencies, and with portability a
 
 Why? Because it's fun!!
 
-NOTE: This code is written with the extensive use of LLMs, like ChatGPT, Gemini, and Claude.
+NOTE: This code is written with the extensive use of LLMs, like GitHub Co-pilot, Gemini, and Claude.
 
 ## Features
 
