@@ -19,7 +19,7 @@
 #include <time.h>
 #define DATE_FORMAT "%Y-%m-%dT%H:%M:%S"
 
-#define OpCode          int
+typedef int OpCode;
 
 #define OP_NOP          (0)
 #define OP_PUSH_NUM     (1)
@@ -74,7 +74,7 @@
 #define OP_OR_STR       (OP_BASE_STR + 11)
 #define OP_NOT_STR      (OP_BASE_STR + 12)
 
-#define DataType        int
+typedef int DataType;
 
 #define VAR_BASE        (100)
 #define VAR_NUMBER      (VAR_BASE + 0)
@@ -92,7 +92,6 @@ typedef struct {
         double value;
     };
 } Instruction;
-
 
 typedef struct {
     DataType type;
