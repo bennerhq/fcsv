@@ -281,17 +281,17 @@ re_type:
                 break;
             case OP_AND_STR:
                 sp--;
-                sp[-1].value = (strlen(sp[-1].str) > 0 && strlen(sp[0].str) > 0);
                 sp[-1].type = VAR_NUMBER;
+                sp[-1].value = (strlen(sp[-1].str) > 0 && strlen(sp[0].str) > 0);
                 break;
             case OP_OR_STR:
                 sp--;
-                sp[-1].value = (strlen(sp[-1].str) > 0 || strlen(sp[0].str) > 0);
                 sp[-1].type = VAR_NUMBER;
+                sp[-1].value = (strlen(sp[-1].str) > 0 || strlen(sp[0].str) > 0);
                 break;
             case OP_NOT_STR:
-                sp[-1].value = (strlen(sp[-1].str) == 0);
                 sp[-1].type = VAR_NUMBER;
+                sp[-1].value = (strlen(sp[-1].str) == 0);
                 break;
 
             default:
