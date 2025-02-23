@@ -68,7 +68,7 @@ void print_code(const Instruction *code, const Variable *variables) {
      } while (ip->op != OP_HALT);
 }
 
-void dump_stack(Variable *stack, Variable *sp) {
+void print_stack(Variable *stack, Variable *sp) {
     for (Variable *vp = stack; vp < sp; vp++) {
         printf("%d: %d ", (int) (vp - stack), (int) vp->type);
         switch (vp->type) {

@@ -37,10 +37,7 @@
 
 #define CSV_SEPERATOR   ','
 
-const Instruction *code; 
-
 Variable variables[MAX_LINE_ITEMS];
-int variables_size = 0;
 
 char *tokens[MAX_LINE_ITEMS];
 
@@ -136,6 +133,7 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     int written_lines = 0;
     int last_progress = -1;
     long processed_size = 0;
+    const Instruction *code = NULL; 
 
     char headder[MAX_LINE_ITEMS];
     char line[MAX_LINE_ITEMS];
@@ -239,8 +237,6 @@ int main(int argc, char *argv[]) {
         perror("Error opening input directory");
         return EXIT_FAILURE;
     }
-
-    code = NULL;
 
     while ((entry = readdir(dir)) != NULL) {
         if (entry->d_type == DT_REG) {
