@@ -2,9 +2,9 @@
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 43):
  *
- * <jens@bennerhq.com> wrote this file.  As long as you retain this notice you
- * can do whatever you want with this stuff. If we meet some day, and you think
- * this stuff is worth it, you can buy me a beer in return.   
+ * ChatGPT and <jens@bennerhq.com> wrote this file.  As long as you retain this
+ * notice you can do whatever you want with this stuff. If we meet some day, and 
+ * you think this stuff is worth it, you can buy me a beer in return.   
  *
  * /benner
  * ----------------------------------------------------------------------------
@@ -506,7 +506,6 @@ const Instruction * parse_expression(const char *iexpr, const Variable *ivariabl
     expr = iexpr;
     variables = ivariables;
 
-    parse_cleaning(code);
     code = (Instruction *) mem_alloc(MAX_CODE_SIZE * sizeof(Instruction *));
     if (code == NULL) {
         fprintf(stderr, "Memory allocation error\n");
