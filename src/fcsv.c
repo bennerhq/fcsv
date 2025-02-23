@@ -24,6 +24,7 @@
 #include <limits.h>
 #include <ctype.h>
 
+#include "../hdr/dmalloc.h"
 #include "../hdr/exec.h"
 #include "../hdr/expr.h"
 
@@ -213,6 +214,8 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     fclose(inputFile);
     fclose(outputFile);
 
+    parse_cleaning(code);
+
     double pct_written = (double)written_lines * 100 / total_lines;
     printf(
         COLOR_YELLOW "Written %s: %d of %d lines written (%.1f%%)\n" COLOR_RESET, 
@@ -255,5 +258,7 @@ int main(int argc, char *argv[]) {
     }
     closedir(dir);
 
+    mem_check();
+    
     return EXIT_SUCCESS;
 }

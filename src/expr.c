@@ -18,6 +18,7 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "../hdr/dmalloc.h"
 #include "../hdr/exec.h"
 #include "../hdr/expr.h"
 
@@ -145,7 +146,7 @@ void next_token_str(char find) {
     }
 
     int len = expr - start;
-    char *str = (char *) malloc(len + 1);
+    char *str = (char *) mem_alloc(len + 1);
     strncpy(str, start, len);
     token.op = TOK_VAR_STR;
     token.str = str;
@@ -490,19 +491,23 @@ DataType parse_cond_expr() {
     return data_type_true;
 }
 
+void parse_cleaning(Instruction const *code) {
+    if (code != NULL) {
+        for (const Instruction *ip = code; ip->op != OP_HALT; ip++) {
+            if (ip->op == OP_PUSH_STR) {
+                mem_free((void *) ip->str);
+            }
+        }
+        mem_free((void*) code);
+    }
+}
+
 const Instruction * parse_expression(const char *iexpr, const Variable *ivariables) {
     expr = iexpr;
     variables = ivariables;
 
-    if (code != NULL) {
-        for (const Instruction *ip = code; ip->op != OP_HALT; ip++) {
-            if (ip->op == OP_PUSH_STR) {
-                free((void *) ip->str);
-            }
-        }
-        free(code);
-    }
-    code = (Instruction *) malloc(MAX_CODE_SIZE * sizeof(Instruction *));
+    parse_cleaning(code);
+    code = (Instruction *) mem_alloc(MAX_CODE_SIZE * sizeof(Instruction *));
     if (code == NULL) {
         fprintf(stderr, "Memory allocation error\n");
         exit(EXIT_FAILURE);

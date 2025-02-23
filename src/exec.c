@@ -18,6 +18,7 @@
 #include <string.h>
 #include <regex.h>
 
+#include "../hdr/dmalloc.h"
 #include "../hdr/exec.h"
 #include "../hdr/expr.h"
 
@@ -205,14 +206,14 @@ re_type:
                     sp--;
                     size_t len1 = strlen(sp[-1].str);
                     size_t len2 = strlen(sp[0].str);
-                    char *result = (char *) malloc(len1 + len2 + 1);
+                    char *result = (char *) mem_alloc(len1 + len2 + 1);
                     if (result == NULL) {
                         fprintf(stderr, "Memory allocation error\n");
                         exit(EXIT_FAILURE);
                     }
                     strcpy(result, sp[-1].str);
                     strcat(result, sp[0].str);
-                    free((void *) sp[-1].str);
+                    mem_free((void *) sp[-1].str);
                     sp[-1].str = result;
                 }
                 break;
@@ -232,7 +233,7 @@ re_type:
                     sp--;
                     int repeat = (int) sp[0].value;
                     size_t len = strlen(sp[-1].str);
-                    char *result = (char *) malloc(len * repeat + 1);
+                    char *result = (char *) mem_alloc(len * repeat + 1);
                     if (result == NULL) {
                         fprintf(stderr, "Memory allocation error\n");
                         exit(EXIT_FAILURE);
@@ -241,7 +242,7 @@ re_type:
                     for (int i = 0; i < repeat; i++) {
                         strcat(result, sp[-1].str);
                     }
-                    free((void *) sp[-1].str);
+                    mem_free((void *) sp[-1].str);
                     sp[-1].str = result;
                 }
                 break;

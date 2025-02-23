@@ -18,7 +18,7 @@
     This is BNF grammar for the filtering string:
  
         <expression> ::= <conditional> | <arithmetic>
-        <conditional> ::= <boolean> "?" <expression> ":" <expression>
+        <conditional> ::= <boolean> "?" <expression> ":" <expression> 
         <boolean> ::= <arithmetic> <relop> <arithmetic>
         <relop> ::= ">" | "<" | "=" | ">=" | "<=" | "!="
 
@@ -36,5 +36,6 @@
 #include "exec.h"
 
 const Instruction * parse_expression(const char *iexpr, const Variable *ivariables);
+void parse_cleaning(Instruction const *code);
 
 #endif /* __EXPR_H__ */
