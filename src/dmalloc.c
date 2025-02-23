@@ -19,12 +19,11 @@
 #define COLOR_GREEN     "\033[32m"
 #define COLOR_RESET     "\033[0m"
 
-#define HEAD_MAGIC "HEAD_MAGIC"
-#define TAIL_MAGIC "TAIL_MAGIC"
+#define HEAD_MAGIC      "HEAD_MAGIC"
+#define TAIL_MAGIC      "TAIL_MAGIC"
 #define HEAD_MAGIC_SIZE (sizeof(HEAD_MAGIC))
 #define TAIL_MAGIC_SIZE (sizeof(TAIL_MAGIC))
 
-// Debugging functionality to track memory allocations
 typedef struct MemTrack {
     void *ptr;
     size_t size;
@@ -80,7 +79,6 @@ void *debug_malloc(size_t size, const char *file, int line) {
         new_track->next = mem_track_head;
         mem_track_head = new_track;
 
-        // Add magic strings
         memcpy(ptr, HEAD_MAGIC, HEAD_MAGIC_SIZE);
         memcpy((char *)ptr + HEAD_MAGIC_SIZE + size, TAIL_MAGIC, TAIL_MAGIC_SIZE);
         ptr += HEAD_MAGIC_SIZE;
