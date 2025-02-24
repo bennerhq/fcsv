@@ -27,12 +27,17 @@ followed five core principles:
 
 ## Code Functionality
 
-The core functionality of `fcsv` is implemented in C, ensuring high performance and efficiency. The C code provides the following features:
+The core functionality of `fcsv` is implemented in C, ensuring high performance and efficiency. 
+The C code provides the following features:
 
-- **Reading CSV Files**: Functions to read CSV files line by line or in bulk, handling different delimiters and formats.
-- **Writing CSV Files**: Functions to write data to CSV files, supporting various delimiters and formats.
-- **Data Manipulation**: Functions to manipulate CSV data, such as filtering rows, selecting columns, and transforming data.
-- **Memory Management**: Efficient memory management to handle large datasets without excessive memory usage.
+- **Reading CSV Files**: Functions to read CSV files line by line or in bulk, handling 
+different delimiters and formats.
+- **Writing CSV Files**: Functions to write data to CSV files, supporting various 
+delimiters and formats.
+- **Data Manipulation**: Functions to manipulate CSV data, such as filtering rows, 
+selecting columns, and transforming data.
+- **Memory Management**: Efficient memory management to handle large datasets without 
+excessive memory usage.
 
 ## TO-DO
 
