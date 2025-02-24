@@ -12,6 +12,7 @@
  */
 
 #ifndef __DMALLOC_H__
+#define __DMALLOC_H__
 
 #define MALLOC_DEBUG       (1)
 #define MALLOC_TRACKING    (0)
@@ -20,15 +21,17 @@
     void *debug_malloc(size_t size, const char *file, int line);
     void debug_free(void *ptr, const char *file, int line);
     void debug_memory_leaks(const char *file, int line);
+    void *debug_realloc(void* ptr, size_t size, size_t old_size, const char *file, int line);
 
-#   define mem_alloc(size)     debug_malloc(size, __FILE__, __LINE__)
-#   define mem_free(ptr)       debug_free(ptr, __FILE__, __LINE__)
-#   define mem_check()         debug_memory_leaks(__FILE__, __LINE__)
-
+#   define mem_alloc(size)                      debug_malloc(size, __FILE__, __LINE__)
+#   define mem_free(ptr)                        debug_free(ptr, __FILE__, __LINE__)
+#   define mem_realloc(ptr, size, old_size)     debug_realloc(ptr, size, old_size, __FILE__, __LINE__)
+#   define mem_check()                          debug_memory_leaks(__FILE__, __LINE__)
 #else
-#   define mem_alloc(size)     malloc(size)
-#   define mem_free(ptr)       free(ptr)
-#   define mem_check()         {}
+#   define mem_alloc(size)                      malloc(size)
+#   define mem_free(ptr)                        free(ptr)
+#   define mem_realloc(ptr, size, old_size)     realloc(ptr, size)
+#   define mem_check()                          {}
 #endif
 
 #endif /* __DMALLOC_H__ */

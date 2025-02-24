@@ -117,6 +117,22 @@ void debug_free(void *user_ptr, const char *file, int line) {
     free(ptr);
 }
 
+void *debug_realloc(void* ptr, size_t size, size_t old_size, const char *file, int line) {
+    void *new_ptr = debug_malloc(size, file, line);
+    if (new_ptr) {
+        if (ptr) {
+            size_t new_size = size > old_size ? old_size : size;
+            memcpy(new_ptr, ptr, new_size);
+
+            debug_free(ptr, file, line);
+        }
+
+        return new_ptr;
+    }
+
+    return NULL;
+}
+
 void debug_memory_leaks(const char *file, int line) {
     MemTrack *current = mem_track_head;
     while (current) {

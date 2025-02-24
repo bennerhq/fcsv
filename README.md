@@ -24,6 +24,7 @@ followed five core principles:
 - Provides functions for reading and writing CSV data
 - Supports various CSV formats and delimiters
 - Allows for easy manipulation of CSV data
+- Output C code from the scripting language, that can replace the stack machine
 
 ## Code Functionality
 

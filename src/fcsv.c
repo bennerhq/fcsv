@@ -20,12 +20,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <limits.h>
 #include <ctype.h>
 
 #include "../hdr/dmalloc.h"
+#include "../hdr/conf.h"
 #include "../hdr/exec.h"
 #include "../hdr/expr.h"
 
@@ -130,6 +132,7 @@ void assign_variables_value() {
 }
 
 void process_csv(const char *input_filename, const char *output_filename, const char *expr) {
+
     int total_lines = 0;
     int written_lines = 0;
     int last_progress = -1;
@@ -222,18 +225,31 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 3) {
-        fprintf(stderr, "Usage: %s <input_directory> <output_directory>\n", argv[0]);
+    Config config = {NULL, NULL, 0};
+    const char *input_dir = NULL;
+    const char *output_dir = NULL;
+    const char *expr = NULL;
+
+    if (argc == 2) {
+        config = conf_read_file(argv[1]);
+
+        input_dir = conf_get(&config, "source_dir");
+        output_dir = conf_get(&config, "dest_dir");
+        expr = conf_get(&config, "filter_script");
+    } 
+    else if (argc == 4) {
+        input_dir = argv[1];
+        output_dir = argv[2];
+        expr = argv[3];    
+    }
+
+    if (!input_dir || !output_dir || !expr) {
+        fprintf(stderr, "Usage: %s <input_directory> <output_directory> <expression>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
-    const char *input_dir = argv[1];
-    const char *output_dir = argv[2];
-    const char *expr = argv[3];
-
     DIR *dir;
     struct dirent *entry;
-
     if ((dir = opendir(input_dir)) == NULL) {
         perror("Error opening input directory");
         return EXIT_FAILURE;
@@ -255,6 +271,7 @@ int main(int argc, char *argv[]) {
     }
     closedir(dir);
 
+    conf_free(&config);
     mem_check();
     
     return EXIT_SUCCESS;

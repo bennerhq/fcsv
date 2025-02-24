@@ -33,7 +33,7 @@ DataType parse_rel_expr();
 DataType parse_arithmetic_expr();
 DataType parse_cond_expr();
 
-#define IS_SPACE        " \t\n"
+#define IS_SPACE        " \t\n\r\v\f"
 #define IS_INT          "0123456789"
 #define IS_DOUBLE       IS_INT "."
 #define IS_ALPHA        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
