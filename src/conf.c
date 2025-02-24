@@ -53,29 +53,27 @@ Config conf_read_file(const char *filename) {
 
     while (fgets(line_read, sizeof(line_read), file) != NULL) {
         char *line = line_read;
-        while (isspace(*line)) {
-            line++;
-        }
+        while (isspace(*line)) line++;
+
+        char *end = line + strlen(line) - 1;
+        while (end > line && isspace((unsigned char)*end)) end--;
+        *(end + 1) = '\0';
+
         if (*line == '\0' || *line == '#') {
             continue;
-        }
-        size_t len = strlen(line);
-
-        int multi_lines = 0;
-        if (len > 1 && line[len - 2] == '\\') {
-            line[len - 2] = ' ';
-            multi_lines = 1;
         }
 
         current_line_size += strlen(line);
         current_line = mem_realloc(current_line, current_line_size + 1, current_line_size);
-        if (! current_line) {
+        if (!current_line) {
             perror("Error allocating memory");
             exit(EXIT_FAILURE);
         }
         strcat(current_line, line);
 
-        if (multi_lines) {
+        size_t len = strlen(current_line);
+        if (len > 1 && current_line[len - 1] == '\\') {
+            current_line[len - 1] = ' ';
             continue;
         }
 
@@ -147,7 +145,6 @@ void conf_print(const Config *config) {
 char *conf_get(const Config *config, const char *key) {
     for (size_t i = 0; i < config->count; i++) {
         if (strcmp(config->keys[i], key) == 0) {
-            printf("Found: '%s'\n", config->values[i]);
             return config->values[i];
         }
     }
