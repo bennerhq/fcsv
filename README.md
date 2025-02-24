@@ -5,9 +5,18 @@ way to read, manipulate, and write any size CSV files.
 
 It's written in native C, with very limited dependencies, and with portability and speed in mind.
 
-Why? Because it's fun!!
+... Oh, and yes—I also wrote a small static typed scripting language, a compiler for it, and a
+stack machine to execute the code!
 
-NOTE: This code is written with the extensive use of LLMs, like GitHub Co-pilot, Gemini, and Claude.
+## Background
+Why this project? I wanted to understanding the capability of GitHub Co-pilot. code, I 
+followed five core principles:
+
+ 1. Always start a coding solution by asking AI to generate the first draft of the code.
+ 2. All code must be written in standard C for optimal speed.
+ 3. Only use standard C libraries to ensure maximum platform portability.
+ 4. Always design for a low memory and resource footprint.
+ 5. Execution speed is the top priority in all algorithmic design choices.
 
 ## Features
 
@@ -28,8 +37,10 @@ The core functionality of `fcsv` is implemented in C, ensuring high performance 
 ## TO-DO
 
 - Control CSV delimiters from cli
-- Handle misformatted CSV files
-- Handle CSV with and without headline
+- Improved handle of misformatted CSV files
+- Handle CSV with and without headline (cli controlled)
+- Add configuration (yaml?) file to read input paramerers
+- Make scripting language turing-complete?
 
 ## Usage
 
