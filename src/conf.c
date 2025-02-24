@@ -142,12 +142,12 @@ void conf_print(const Config *config) {
     }
 }
 
-char *conf_get(const Config *config, const char *key) {
+const char *conf_get(const Config *config, const char *key, const char* default_value) {
     for (size_t i = 0; i < config->count; i++) {
         if (strcmp(config->keys[i], key) == 0) {
             return config->values[i];
         }
     }
 
-    return NULL;
+    return default_value;
 }

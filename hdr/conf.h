@@ -22,6 +22,6 @@ typedef struct {
 Config conf_read_file(const char *filename);
 void conf_free(Config *config);
 void conf_print(const Config *config);
-char *conf_get(const Config *config, const char *key);
+const char *conf_get(const Config *config, const char *key, const char* default_value);
 
 #endif /* __CONF_H__ */

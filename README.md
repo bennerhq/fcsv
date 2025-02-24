@@ -42,10 +42,8 @@ excessive memory usage.
 
 ## TO-DO
 
-- Control CSV delimiters from cli
 - Improved handle of misformatted CSV files
 - Handle CSV with and without headline (cli controlled)
-- Add configuration (yaml?) file to read input paramerers
 - Make scripting language turing-complete?
 
 ## Usage

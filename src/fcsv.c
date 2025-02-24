@@ -38,7 +38,7 @@
 
 #define MAX_LINE_ITEMS  1024
 
-#define CSV_SEPERATOR   ','
+char csv_delimiter = ',';
 
 Variable variables[MAX_LINE_ITEMS];
 
@@ -49,7 +49,7 @@ void tokenize_line(char *line) {
     char *start = line;
     char *end;
 
-    while ((end = strchr(start, CSV_SEPERATOR)) != NULL) {
+    while ((end = strchr(start, csv_delimiter)) != NULL) {
         *end = '\0';
         tokens[count++] = start;
         start = end + 1;
@@ -233,10 +233,12 @@ int main(int argc, char *argv[]) {
     if (argc == 2) {
         config = conf_read_file(argv[1]);
 
-        input_dir = conf_get(&config, "source_dir");
-        output_dir = conf_get(&config, "dest_dir");
-        expr = conf_get(&config, "filter_script");
-    } 
+        input_dir = conf_get(&config, "source_dir", NULL);
+        output_dir = conf_get(&config, "dest_dir", NULL);
+        expr = conf_get(&config, "filter_script", NULL);
+
+        csv_delimiter = conf_get(&config, "csv_delimiter", ",")[0];
+    }
     else if (argc == 4) {
         input_dir = argv[1];
         output_dir = argv[2];
