@@ -179,21 +179,19 @@ void var_cleaning() {
 }
 
 void assign_variables_config(Config *config) {
-    const Instruction *code = NULL;
     variables_count = 0;
 
     for (int i = 0; i < config->count; i++) {
         variables[variables_count].type = VAR_END;
 
-        parse_cleaning(code);
-        code = parse_expression(config->values[i], variables);
+        const Instruction *code = parse_expression(config->values[i], variables);
         Variable *var = execute_code_datatype(code, variables);
 
         var->name = config->keys[i];
         var_push(var);
-    }
 
-    parse_cleaning(code);
+        parse_cleaning(code);
+    }
 
     variables[variables_count].type = VAR_END;
     variables_base = variables_count;
@@ -257,10 +255,31 @@ void assign_variables_value() {
     }
 }
 
+void  update_progress_bar(long processed_size, long file_size, long *last_progress) {
+    int progress = (int)((processed_size * 100) / file_size);
+    if (progress == *last_progress) {
+        return;
+    }
+    *last_progress = progress;
+
+    struct winsize w;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    int terminal_width = w.ws_col;
+    int bar_width = terminal_width * 0.5;
+
+    char progress_bar[bar_width + 1];
+    int bar_length = (progress * bar_width) / 100;
+    memset(progress_bar, '=', bar_length);
+    memset(progress_bar + bar_length, ' ', bar_width - bar_length);
+    progress_bar[bar_width] = '\0';
+    printf("\r" COLOR_GREEN "[%-*s] %d%%" COLOR_RESET, bar_width, progress_bar, progress);
+    fflush(stdout);
+}
+
 void process_csv(const char *input_filename, const char *output_filename, const char *expr) {
     int total_lines = 0;
     int written_lines = 0;
-    int last_progress = -1;
+    long last_progress = -1;
     long processed_size = 0;
 
     const Instruction *input_code = NULL; 
@@ -297,7 +316,7 @@ void process_csv(const char *input_filename, const char *output_filename, const 
         return;
     }
 
-    const char *output_headder = var_get_str("filter_output_headder", NULL);
+    const char *output_headder = var_get_str("output_headder", NULL);
     if (output_headder) {
         fwrite(output_headder, sizeof(char), strlen(output_headder), outputFile);
         fwrite("\n", sizeof(char), strlen("\n"), outputFile);
@@ -305,7 +324,6 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     else {
         fwrite(headder, sizeof(char), strlen(headder), outputFile);
     }
-
     processed_size += strlen(headder);
 
     tokenize_line(headder, input_csv_delimiter);
@@ -325,9 +343,9 @@ void process_csv(const char *input_filename, const char *output_filename, const 
             input_code = parse_expression(expr, variables);
 //            print_code(code, variables);
 
-            const char *output_fields = var_get_str("filter_output_fields", NULL);
+            const char *output_fields = var_get_str("output_fields", NULL);
             if (output_fields) {
-                output_delimiter = var_get_str("filter_output_csv_delimiter", input_csv_delimiter);
+                output_delimiter = var_get_str("output_csv_delimiter", input_csv_delimiter);
 
                 tokenize_line(output_fields, output_delimiter);
                 output_code_count = 0;
@@ -390,34 +408,18 @@ void process_csv(const char *input_filename, const char *output_filename, const 
             written_lines++;    
         }
 
-        int progress = (int)((processed_size * 100) / file_size);
-        if (progress != last_progress) {
-            last_progress = progress;
-
-            struct winsize w;
-            ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-            int terminal_width = w.ws_col;
-            int bar_width = terminal_width * 0.5;
-
-            char progress_bar[bar_width + 1];
-            int bar_length = (progress * bar_width) / 100;
-            memset(progress_bar, '=', bar_length);
-            memset(progress_bar + bar_length, ' ', bar_width - bar_length);
-            progress_bar[bar_width] = '\0';
-            printf("\r" COLOR_GREEN "[%-*s] %d%%" COLOR_RESET, bar_width, progress_bar, progress);
-            fflush(stdout);
-        }
+        update_progress_bar(processed_size, file_size, &last_progress);
     }
     printf("\n");
-
-    fclose(inputFile);
-    fclose(outputFile);
 
     double pct_written = (double)written_lines * 100 / total_lines;
     printf(
         COLOR_YELLOW "Written %s: %d of %d lines written (%.1f%%)\n" COLOR_RESET, 
         output_filename, written_lines, total_lines, pct_written
     );
+
+    fclose(inputFile);
+    fclose(outputFile);
 
     for (int index=0; index < output_code_count; index++) {
         parse_cleaning(output_code[index]);
@@ -439,8 +441,8 @@ int main(int argc, char *argv[]) {
 
         input_dir = var_get_str("source_dir", NULL);
         output_dir = var_get_str("dest_dir", NULL);
-        expr = var_get_str("filter_input_script", NULL);
-        input_csv_delimiter = var_get_str("filter_input_csv_delimiter", ",");
+        expr = var_get_str("input_script", NULL);
+        input_csv_delimiter = var_get_str("input_csv_delimiter", ",");
     }
     else if (argc == 4) {
         input_dir = argv[1];
@@ -449,7 +451,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (!input_dir || !output_dir || !expr) {
-        fprintf(stderr, "Usage: %s <input_directory> <output_directory> <expression>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <conf file> | <input_directory> <output_directory> <expression>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
@@ -479,7 +481,6 @@ int main(int argc, char *argv[]) {
     closedir(dir);
 
     conf_cleaning(&config);
-
     mem_cleaning();
     
     return EXIT_SUCCESS;
