@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <execinfo.h>
+#include <assert.h> 
 #include "../hdr/dmalloc.h" 
 
 #define COLOR_RED       "\033[31m"
@@ -44,7 +46,22 @@ MemTrack * debug_find_ptr(void *ptr, const char *file, int line) {
         current = current->next;
     }
 
+#if MALLOC_CALLSTACK
+    void *array[10];
+    size_t size = backtrace(array, 10);
+    char **strings = backtrace_symbols(array, size);
+    if (strings) {
+        fprintf(stderr, "Call stack:\n");
+        for (size_t i = 0; i < size; i++) {
+            fprintf(stderr, "%s\n", strings[i]);
+        }
+        free(strings);
+    }
+#endif
+
     fprintf(stderr, COLOR_RED "Memory corruption detected. Can't find %p allocated at %s:%d\n" COLOR_RESET, ptr, file, line);
+    exit(EXIT_FAILURE);
+
     return NULL;
 }
 
@@ -70,6 +87,8 @@ void debug_check_ptr(void *user_ptr, const char *file, int line) {
 }
 
 void *debug_malloc(size_t size, const char *file, int line) {
+    debug_alloc_integrity(file, line);
+
     void *ptr = malloc(size + HEAD_MAGIC_SIZE + TAIL_MAGIC_SIZE);
     if (ptr) {
         MemTrack *new_track = (MemTrack *)malloc(sizeof(MemTrack));
@@ -89,12 +108,14 @@ void *debug_malloc(size_t size, const char *file, int line) {
 #if MALLOC_TRACKING
         fprintf(stderr, COLOR_GREEN "malloc %p at %s:%d\n" COLOR_RESET, ptr, file, line);
 #endif
-        return (char *)ptr;
     }
-    return NULL;
+
+    return (char*) ptr;
 }
 
 void debug_free(void *user_ptr, const char *file, int line) {
+    debug_alloc_integrity(file, line);
+
     if (!user_ptr) return;
 
     debug_check_ptr(user_ptr, file, line);
@@ -118,6 +139,8 @@ void debug_free(void *user_ptr, const char *file, int line) {
 }
 
 void *debug_realloc(void* ptr, size_t size, size_t old_size, const char *file, int line) {
+    debug_alloc_integrity(file, line);
+
     void *new_ptr = debug_malloc(size, file, line);
     if (new_ptr) {
         if (ptr) {
@@ -133,7 +156,7 @@ void *debug_realloc(void* ptr, size_t size, size_t old_size, const char *file, i
     return NULL;
 }
 
-void debug_memory_leaks(const char *file, int line) {
+void debug_cleaning(const char *file, int line) {
     MemTrack *current = mem_track_head;
     while (current) {
         debug_check_ptr(current->ptr + HEAD_MAGIC_SIZE, file, line);
@@ -141,4 +164,14 @@ void debug_memory_leaks(const char *file, int line) {
         fprintf(stderr, "Memory leak detected: %p allocated at %s:%d\n", current->ptr, current->file, current->line);
         current = current->next;
     }
+}
+
+void debug_alloc_integrity(const char *file, int line) {
+    assert(file || line);
+
+    MemTrack *current = mem_track_head;
+    while (current) {
+        debug_check_ptr(current->ptr + HEAD_MAGIC_SIZE, current->file, current->line);
+        current = current->next;
+    }   
 }

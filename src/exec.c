@@ -26,6 +26,9 @@
 #define MAX_STACK_SIZE      (1024)
 #define STACK_SIZE_BUFFER   (10)
 
+Variable stack[MAX_STACK_SIZE];
+char datetime[20];
+
 const char *op_names[] = {
     "NOP",
     "PUSH %d",
@@ -76,9 +79,11 @@ void print_stack(Variable *stack, Variable *sp) {
             case VAR_NUMBER:
                 printf("%f\n", vp->value);
                 break;
+
             case VAR_STRING:
                 printf("%s\n", vp->str);
                 break;
+
             case VAR_DATETIME:
                 {
                     char buffer[20];
@@ -93,8 +98,7 @@ void print_stack(Variable *stack, Variable *sp) {
     }
 }
 
-double execute_code(const Instruction *code, const Variable *variables) {
-    Variable stack[MAX_STACK_SIZE];
+Variable *execute_code_datatype(const Instruction *code, const Variable *variables) {
     Variable *sp = stack;
 
     for (const Instruction *ip = code; ip->op != OP_HALT; ip++) {
@@ -207,15 +211,19 @@ re_type:
                     sp--;
                     size_t len1 = strlen(sp[-1].str);
                     size_t len2 = strlen(sp[0].str);
-                    char *result = (char *) mem_alloc(len1 + len2 + 1);
+                    char *result = (char *) mem_malloc(len1 + len2 + 1);
                     if (result == NULL) {
-                        fprintf(stderr, "Memory allocation error\n");
+                        fprintf(stderr, "Memory allocation failed\n");
                         exit(EXIT_FAILURE);
                     }
+
                     strcpy(result, sp[-1].str);
                     strcat(result, sp[0].str);
-                    mem_free((void *) sp[-1].str);
+
+                    if (sp[-1].is_dynamic) mem_free((void *) sp[-1].str);
+
                     sp[-1].str = result;
+                    sp[-1].is_dynamic = true;
                 }
                 break;
             case OP_SUB_STR:
@@ -234,17 +242,21 @@ re_type:
                     sp--;
                     int repeat = (int) sp[0].value;
                     size_t len = strlen(sp[-1].str);
-                    char *result = (char *) mem_alloc(len * repeat + 1);
+                    char *result = (char *) mem_malloc(len * repeat + 1);
                     if (result == NULL) {
                         fprintf(stderr, "Memory allocation error\n");
                         exit(EXIT_FAILURE);
                     }
+
                     result[0] = '\0';
                     for (int i = 0; i < repeat; i++) {
                         strcat(result, sp[-1].str);
                     }
-                    mem_free((void *) sp[-1].str);
+
+                    if (sp[-1].is_dynamic) mem_free((void *) sp[-1].str);
+
                     sp[-1].str = result;
+                    sp[-1].is_dynamic = true;
                 }
                 break;
             case OP_DIV_STR:
@@ -308,8 +320,32 @@ re_type:
         exit(EXIT_FAILURE);
     }
 
-    if (sp->type == VAR_STRING) {
-        return strlen(sp->str) > 0;
+    return sp;
+}
+
+double execute_code(const Instruction *code, const Variable *variables) {
+    Variable *result = execute_code_datatype(code, variables);
+
+    double value = 0;
+
+    switch (result->type) {
+        case VAR_NUMBER:
+        value = result->value;
+            break;
+
+        case VAR_STRING:
+        value = strlen(result->str) > 0;
+            if (result->is_dynamic) mem_free((void *) result->str);
+            break;
+
+        case VAR_DATETIME:
+            value = 0;
+            break;
+
+        default:
+            fprintf(stderr, "Result type is unknown!\n");
+            exit(EXIT_FAILURE);
     }
-    return sp->value != 0;
+
+    return value;
 }

@@ -63,25 +63,27 @@ Config conf_read_file(const char *filename) {
             continue;
         }
 
-        current_line_size += strlen(line);
-        current_line = mem_realloc(current_line, current_line_size + 1, current_line_size);
-        if (!current_line) {
-            perror("Error allocating memory");
+        size_t line_len = strlen(line);
+        char *new_line = mem_realloc(current_line, current_line_size + line_len + 1, current_line_size);
+        if (!new_line) {
+            perror("Error reallocating memory");
             exit(EXIT_FAILURE);
         }
+        current_line = new_line;
         strcat(current_line, line);
+        current_line_size += line_len + 1;
 
-        size_t len = strlen(current_line);
-        if (len > 1 && current_line[len - 1] == '\\') {
-            current_line[len - 1] = ' ';
+        size_t current_len = strlen(current_line);
+        if (current_len > 1 && current_line[current_len - 1] == '\\') {
+            current_line[current_len - 1] = ' ';
             continue;
         }
 
         char *delimiter = strchr(current_line, '=');
         if (delimiter) {
             *delimiter = '\0';
-            char *key = mem_alloc(strlen(current_line) + 1);
-            char *value = mem_alloc(strlen(delimiter + 1) + 1);
+            char *key = mem_malloc(strlen(current_line) + 1);
+            char *value = mem_malloc(strlen(delimiter + 1) + 1);
             if (!key || !value) {
                 perror("Error allocating memory");
                 exit(EXIT_FAILURE);
@@ -99,8 +101,8 @@ Config conf_read_file(const char *filename) {
             char *key_trim = trim_whitespace(key);
             char *value_trim = trim_whitespace(value);
 
-            config.keys[config.count] = mem_alloc(strlen(key_trim) + 1);
-            config.values[config.count] = mem_alloc(strlen(value_trim) + 1);
+            config.keys[config.count] = mem_malloc(strlen(key_trim) + 1);
+            config.values[config.count] = mem_malloc(strlen(value_trim) + 1);
             if (!config.keys[config.count] || !config.values[config.count]) {
                 perror("Error allocating memory");
                 exit(EXIT_FAILURE);
@@ -120,15 +122,16 @@ Config conf_read_file(const char *filename) {
     }
 
     fclose(file);
+
     return config;
 }
 
-void conf_free(Config *config) {
+void conf_cleaning(Config *config) {
     if (!config) {
         return;
     }
 
-    for (size_t i = 0; i < config->count; i++) {
+    for (int i = 0; i < config->count; i++) {
         mem_free(config->keys[i]);
         mem_free(config->values[i]);
     }
@@ -137,13 +140,21 @@ void conf_free(Config *config) {
 }
 
 void conf_print(const Config *config) {
-    for (size_t i = 0; i < config->count; i++) {
+    if (!config) {
+        return;
+    }
+
+    for (int i = 0; i < config->count; i++) {
         printf("%s='%s'\n", config->keys[i], config->values[i]);
     }
 }
 
 const char *conf_get(const Config *config, const char *key, const char* default_value) {
-    for (size_t i = 0; i < config->count; i++) {
+    if (!config) {
+        return default_value;
+    }
+
+    for (int i = 0; i < config->count; i++) {
         if (strcmp(config->keys[i], key) == 0) {
             return config->values[i];
         }

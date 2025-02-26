@@ -72,9 +72,11 @@ int code_size;
 const Variable *variables;
 
 const char *expr;
+const char *expr_begin;
 const char *expr_end;
 
 const Token op_symbols[] = {
+    {.str = "",     .op = OP_NOP},
     {.str = "+",    .op = OP_ADD},
     {.str = "-",    .op = OP_SUB},
     {.str = "*",    .op = OP_MUL},
@@ -142,12 +144,12 @@ void next_token_str(char find) {
     }
 
     if (*expr != find) {
-        fprintf(stderr, "Error: Can't find trailing '%c'\n", find);
+        fprintf(stderr, "Error: '%s' Can't find trailing '%c'\n", expr_begin, find);
         exit(EXIT_FAILURE);
     }
 
     int len = expr - start;
-    char *str = (char *) mem_alloc(len + 1);
+    char *str = (char *) mem_malloc(len + 1);
     strncpy(str, start, len);
     token.op = TOK_VAR_STR;
     token.str = str;
@@ -190,7 +192,7 @@ void next_token() {
         if (item->op == TOK_END) break;
 
         int len = strlen(item->str);
-        if (strncmp(expr, item->str, len) == 0) {
+        if (len && strncmp(expr, item->str, len) == 0) {
             set_token(item->op, NULL, len);
             return;
         }
@@ -322,21 +324,22 @@ DataType parse_factor() {
             break;
 
         case TOK_ID_NAME: {
-            int var_index = -1;
+            bool found = false;
             for (int i = 0; variables[i].type != VAR_END; i++) {
                 if (strncmp(variables[i].name, token.name, strlen(token.name)) == 0) {
-                    var_index = i;
+                    data_type = variables[i].type;
+                    emit(OP_PUSH_VAR, i, data_type);
+                    next_token();
+
+                    found = true;
                     break;
                 }
             }
-            if (var_index != -1) {
-                data_type = variables[var_index].type;
-                emit(OP_PUSH_VAR, var_index, data_type);
-            } else {
+
+            if (!found) {
                 fprintf(stderr, "Error: Undefined variable '%s'\n", token.name);
                 exit(EXIT_FAILURE);
             }
-            next_token();
             break;
         }
 
@@ -493,27 +496,30 @@ DataType parse_cond_expr() {
 }
 
 void parse_cleaning(Instruction const *code) {
-    if (code != NULL) {
-        for (const Instruction *ip = code; ip->op != OP_HALT; ip++) {
-            if (ip->op == OP_PUSH_STR) {
-                mem_free((void *) ip->str);
-            }
-        }
-        mem_free((void*) code);
+    if (code == NULL) {
+        return;
     }
+
+    for (const Instruction *ip = code; ip->op != OP_HALT; ip++) {
+        if (ip->op == OP_PUSH_STR) {
+            mem_free((void *) ip->str);
+        }
+    }
+    mem_free((void*) code);
 }
 
 const Instruction * parse_expression(const char *iexpr, const Variable *ivariables) {
     expr = iexpr;
     variables = ivariables;
 
-    code = (Instruction *) mem_alloc(MAX_CODE_SIZE * sizeof(Instruction *));
+    code = (Instruction *) mem_malloc(MAX_CODE_SIZE * sizeof(Instruction *));
     if (code == NULL) {
         fprintf(stderr, "Memory allocation error\n");
         exit(EXIT_FAILURE);
     }
 
     code_size = 0;
+    expr_begin = expr;
     expr_end = expr + strlen(expr);
 
     next_token();

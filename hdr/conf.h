@@ -16,11 +16,11 @@
 typedef struct {
     char **keys;
     char **values;
-    size_t count;
+    int count;
 } Config;
 
 Config conf_read_file(const char *filename);
-void conf_free(Config *config);
+void conf_cleaning(Config *config);
 void conf_print(const Config *config);
 const char *conf_get(const Config *config, const char *key, const char* default_value);
 

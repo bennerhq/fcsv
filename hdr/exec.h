@@ -18,6 +18,7 @@
 #define __EXEC_H__
 
 #include <time.h>
+#include <stdbool.h>
 
 #define DATE_FORMAT "%Y-%m-%dT%H:%M:%S"
 
@@ -86,6 +87,17 @@ typedef int OpCode;
 typedef int DataType;
 
 typedef struct {
+    DataType type;
+    const char *name;
+    bool is_dynamic;
+    union {
+        const char *str;
+        double value;
+        struct tm datetime;
+    };
+} Variable;
+
+typedef struct {
     OpCode op;
     DataType type;
     union {
@@ -94,17 +106,8 @@ typedef struct {
     };
 } Instruction;
 
-typedef struct {
-    DataType type;
-    char *name;
-    union {
-        const char *str;
-        double value;
-        struct tm datetime;
-    };
-} Variable;
-
 void print_code(const Instruction *code, const Variable *variables);
+Variable *execute_code_datatype(const Instruction *code, const Variable *variables);
 double execute_code(const Instruction *code, const Variable *variables);
 
 #endif /* __EXEC_H__ */

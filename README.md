@@ -43,6 +43,7 @@ excessive memory usage.
 ## TO-DO
 
 - Improved handle of misformatted CSV files
+- Improved error handeling in general
 - Handle CSV with and without headline (cli controlled)
 - Make scripting language turing-complete?
 
