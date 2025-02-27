@@ -47,13 +47,12 @@ Config conf_read_file(const char *filename) {
     size_t current_line_size = 0;
 
     while (fgets(line_read, sizeof(line_read), file) != NULL) {
-        char *line = line_read;
-        while (isspace(*line)) line++;
+        if (strlen(line_read) == sizeof(line_read) - 1) {
+            fprintf(stderr, "Error: Line too long\n");
+            exit(EXIT_FAILURE);
+        }
 
-        char *end = line + strlen(line) - 1;
-        while (end > line && isspace((unsigned char)*end)) end--;
-        *(end + 1) = '\0';
-
+        char *line = trim_whitespace(line_read);
         if (*line == '\0' || *line == '#') {
             continue;
         }
@@ -61,7 +60,7 @@ Config conf_read_file(const char *filename) {
         size_t line_len = strlen(line);
         char *new_line = mem_realloc(current_line, current_line_size + line_len + 1, current_line_size);
         if (!new_line) {
-            perror("Error reallocating memory");
+            perror("Out of memory");
             exit(EXIT_FAILURE);
         }
         current_line = new_line;
@@ -80,14 +79,16 @@ Config conf_read_file(const char *filename) {
             char *key = mem_malloc(strlen(current_line) + 1);
             char *value = mem_malloc(strlen(delimiter + 1) + 1);
             if (!key || !value) {
-                perror("Error allocating memory");
+                perror("Out of memory");
                 exit(EXIT_FAILURE);
             }
 
-            config.keys = mem_realloc(config.keys, (config.count + 1) * sizeof(char *), config.count * sizeof(char *));
-            config.values = mem_realloc(config.values, (config.count + 1) * sizeof(char *), config.count * sizeof(char *));
+            size_t new_size = (config.count + 1) * sizeof(char *);
+            size_t ole_size = config.count * sizeof(char *);
+            config.keys = mem_realloc(config.keys, new_size, ole_size);
+            config.values = mem_realloc(config.values, new_size, ole_size);
             if (!config.keys || !config.values) {
-                perror("Error allocating memory");
+                perror("Out of memory");
                 exit(EXIT_FAILURE);
             }
 
@@ -99,7 +100,7 @@ Config conf_read_file(const char *filename) {
             config.keys[config.count] = mem_malloc(strlen(key_trim) + 1);
             config.values[config.count] = mem_malloc(strlen(value_trim) + 1);
             if (!config.keys[config.count] || !config.values[config.count]) {
-                perror("Error allocating memory");
+                perror("Out of memory");
                 exit(EXIT_FAILURE);
             }
 

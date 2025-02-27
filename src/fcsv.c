@@ -155,6 +155,11 @@ void var_push(Variable *var) {
         case VAR_STRING:
             new_var->is_dynamic = true;
             new_var->str = (char *) mem_malloc(strlen(var->str) + 1);
+            if (new_var->str == NULL) {
+                fprintf(stderr, "Out of memory\n");
+                exit(EXIT_FAILURE);
+            }
+
             strcpy((char *)new_var->str, (char *)var->str);
             break;
 
@@ -168,8 +173,8 @@ void var_push(Variable *var) {
     }
 }
 
-void var_cleaning() {
-    for (int i = variables_base; i < variables_count; i++) {
+void var_cleaning(bool all) {
+    for (int i = all ? 0 :variables_base; i < variables_count; i++) {
         Variable *var = &variables[i];
         if (var->is_dynamic) {
             mem_free((void *) var->str);
@@ -180,7 +185,6 @@ void var_cleaning() {
 
 void assign_variables_config(Config *config) {
     variables_count = 0;
-
     for (int i = 0; i < config->count; i++) {
         variables[variables_count].type = VAR_END;
 
@@ -231,7 +235,7 @@ int assign_variables_type() {
 }
 
 void assign_variables_value() {
-    var_cleaning();
+    var_cleaning(false);
     for (int index = 0; tokens[index] != NULL; index++) {
         Variable *var = &variables[variables_base + index];
         switch (var->type) {
@@ -315,6 +319,10 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     if (fgets(headder, sizeof(headder), inputFile) == NULL) {
         return;
     }
+    if (strlen(headder) == sizeof(headder) - 1) {
+        fprintf(stderr, "Error: Line too long\n");
+        exit(EXIT_FAILURE);
+    }
 
     const char *output_headder = var_get_str("output_headder", NULL);
     if (output_headder) {
@@ -330,6 +338,11 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     assign_variables_name();
 
     while (fgets(line, sizeof(line), inputFile) != NULL) {
+        if (strlen(line) == sizeof(line) - 1) {
+            fprintf(stderr, "Error: Line too long\n");
+            exit(EXIT_FAILURE);
+        }
+
         processed_size += strlen(line);
         total_lines ++;
 
@@ -341,7 +354,6 @@ void process_csv(const char *input_filename, const char *output_filename, const 
             assign_variables_value();
 
             input_code = parse_expression(expr, variables);
-//            print_code(code, variables);
 
             const char *output_fields = var_get_str("output_fields", NULL);
             if (output_fields) {
@@ -410,11 +422,10 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 
         update_progress_bar(processed_size, file_size, &last_progress);
     }
-    printf("\n");
 
     double pct_written = (double)written_lines * 100 / total_lines;
     printf(
-        COLOR_YELLOW "Written %s: %d of %d lines written (%.1f%%)\n" COLOR_RESET, 
+        COLOR_YELLOW "\nWritten %s: %d of %d lines written (%.1f%%)\n" COLOR_RESET, 
         output_filename, written_lines, total_lines, pct_written
     );
 
@@ -425,7 +436,7 @@ void process_csv(const char *input_filename, const char *output_filename, const 
         parse_cleaning(output_code[index]);
     }
     parse_cleaning(input_code);
-    var_cleaning();
+    var_cleaning(false);
 }
 
 int main(int argc, char *argv[]) {
@@ -481,6 +492,7 @@ int main(int argc, char *argv[]) {
     closedir(dir);
 
     conf_cleaning(&config);
+    var_cleaning(true);
     mem_cleaning();
     
     return EXIT_SUCCESS;

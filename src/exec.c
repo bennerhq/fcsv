@@ -213,7 +213,7 @@ re_type:
                     size_t len2 = strlen(sp[0].str);
                     char *result = (char *) mem_malloc(len1 + len2 + 1);
                     if (result == NULL) {
-                        fprintf(stderr, "Memory allocation failed\n");
+                        fprintf(stderr, "Out of memory\n");
                         exit(EXIT_FAILURE);
                     }
 
@@ -244,7 +244,7 @@ re_type:
                     size_t len = strlen(sp[-1].str);
                     char *result = (char *) mem_malloc(len * repeat + 1);
                     if (result == NULL) {
-                        fprintf(stderr, "Memory allocation error\n");
+                        fprintf(stderr, "Out of memory\n");
                         exit(EXIT_FAILURE);
                     }
 

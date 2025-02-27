@@ -150,6 +150,10 @@ void next_token_str(char find) {
 
     int len = expr - start;
     char *str = (char *) mem_malloc(len + 1);
+    if (str == NULL) {
+        fprintf(stderr, "Out of memory\n");
+        exit(EXIT_FAILURE);
+    }
     strncpy(str, start, len);
     token.op = TOK_VAR_STR;
     token.str = str;
@@ -514,7 +518,7 @@ const Instruction * parse_expression(const char *iexpr, const Variable *ivariabl
 
     code = (Instruction *) mem_malloc(MAX_CODE_SIZE * sizeof(Instruction *));
     if (code == NULL) {
-        fprintf(stderr, "Memory allocation error\n");
+        fprintf(stderr, "Out of memory\n");
         exit(EXIT_FAILURE);
     }
 
