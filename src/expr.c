@@ -512,7 +512,7 @@ void parse_cleaning(Instruction const *code) {
     mem_free((void*) code);
 }
 
-const Instruction * parse_expression(const char *iexpr, const Variable *ivariables) {
+const Instruction *parse_expression(const char *iexpr, const Variable *ivariables) {
     expr = iexpr;
     variables = ivariables;
 

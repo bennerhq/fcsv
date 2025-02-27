@@ -300,13 +300,13 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     FILE *inputFile = fopen(input_filename, "rb");
     if (inputFile == NULL) {
         fprintf(stderr, "Error opening input file: '%s'\n", input_filename);
-        return;
+        exit(EXIT_FAILURE);
     }
 
     FILE *outputFile = fopen(output_filename, "wb");
     if (outputFile == NULL) {
         fprintf(stderr, "Error creating output file: '%s'\n", output_filename);
-        return;
+        exit(EXIT_FAILURE);
     }
 
     fseek(inputFile, 0, SEEK_END);
@@ -317,7 +317,8 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 
     // Read the header line
     if (fgets(headder, sizeof(headder), inputFile) == NULL) {
-        return;
+        fprintf(stderr, "Can't read input file: '%s'\n", output_filename);
+        exit(EXIT_FAILURE);
     }
     if (strlen(headder) == sizeof(headder) - 1) {
         fprintf(stderr, "Error: Line too long\n");
