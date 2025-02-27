@@ -135,16 +135,6 @@ void conf_cleaning(Config *config) {
     mem_free(config->values);
 }
 
-void conf_print(const Config *config) {
-    if (!config) {
-        return;
-    }
-
-    for (int i = 0; i < config->count; i++) {
-        printf("%s='%s'\n", config->keys[i], config->values[i]);
-    }
-}
-
 const char *conf_get(const Config *config, const char *key, const char* default_value) {
     if (!config) {
         return default_value;
@@ -157,4 +147,14 @@ const char *conf_get(const Config *config, const char *key, const char* default_
     }
 
     return default_value;
+}
+
+void conf_print(const Config *config) {
+    if (!config) {
+        return;
+    }
+
+    for (int i = 0; i < config->count; i++) {
+        printf("%s='%s'\n", config->keys[i], config->values[i]);
+    }
 }

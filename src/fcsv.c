@@ -313,6 +313,18 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     long file_size = ftell(inputFile);
     fseek(inputFile, 0, SEEK_SET);
 
+    char *output_fields_copy = NULL;
+    const char *output_fields = var_get_str("output_fields", NULL);
+    if (output_fields) {
+        output_fields_copy = (void *) mem_malloc(strlen(output_fields) + 1);
+        if (output_fields_copy == NULL) {
+            fprintf(stderr, "Out of memory\n");
+            exit(EXIT_FAILURE);
+        }
+
+        strcpy(output_fields_copy, output_fields);      
+    }
+
     printf(COLOR_CYAN "Processing %s\n" COLOR_RESET, input_filename);
 
     // Read the header line
@@ -356,11 +368,10 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 
             input_code = parse_expression(expr, variables);
 
-            const char *output_fields = var_get_str("output_fields", NULL);
-            if (output_fields) {
+            if (output_fields_copy) {
                 output_delimiter = var_get_str("output_csv_delimiter", input_csv_delimiter);
 
-                tokenize_line(output_fields, output_delimiter);
+                tokenize_line(output_fields_copy, output_delimiter);
                 output_code_count = 0;
                 for (int index = 0; tokens[index] != NULL; index++) {
                     output_code[output_code_count++] = parse_expression(tokens[index], variables);
@@ -404,13 +415,12 @@ void process_csv(const char *input_filename, const char *output_filename, const 
                             exit(EXIT_FAILURE);
                     }
 
-                    output_line_ptr += strlen(output_line_ptr);
+                    output_line_ptr = output_line + strlen(output_line);
                     if (index < output_code_count - 1) {
                         sprintf(output_line_ptr, "%s", output_delimiter);
-                        output_line_ptr += strlen(output_line_ptr);
+                        output_line_ptr = output_line + strlen(output_line);
                     }
                 }
-
                 fwrite(output_line, sizeof(char), strlen(output_line), outputFile);
                 fwrite("\n", sizeof(char), strlen("\n"), outputFile);
             }
@@ -432,6 +442,8 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 
     fclose(inputFile);
     fclose(outputFile);
+
+    mem_free((void *) output_fields_copy);
 
     for (int index=0; index < output_code_count; index++) {
         parse_cleaning(output_code[index]);
@@ -481,10 +493,8 @@ int main(int argc, char *argv[]) {
 
         const char *ext = strrchr(entry->d_name, '.');
         if (ext && strcmp(ext, ".csv") == 0) {
-            char input_filename[PATH_MAX];
+            char input_filename[PATH_MAX], output_filename[PATH_MAX];
             snprintf(input_filename, sizeof(input_filename), "%s/%s", input_dir, entry->d_name);
-
-            char output_filename[PATH_MAX];
             snprintf(output_filename, sizeof(output_filename), "%s/%s", output_dir, entry->d_name);
 
             process_csv(input_filename, output_filename, expr);
