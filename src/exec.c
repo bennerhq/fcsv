@@ -17,7 +17,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <regex.h>
 
 #include "../hdr/dmalloc.h"
 #include "../hdr/exec.h"
@@ -27,7 +26,6 @@
 #define STACK_SIZE_BUFFER   (10)
 
 Variable stack[MAX_STACK_SIZE];
-char datetime[20];
 
 const char *op_names[] = {
     "NOP",

@@ -309,6 +309,8 @@ void process_csv(const char *input_filename, const char *output_filename, const 
         exit(EXIT_FAILURE);
     }
 
+    printf(COLOR_CYAN "Processing %s\n" COLOR_RESET, input_filename);
+
     fseek(inputFile, 0, SEEK_END);
     long file_size = ftell(inputFile);
     fseek(inputFile, 0, SEEK_SET);
@@ -325,31 +327,6 @@ void process_csv(const char *input_filename, const char *output_filename, const 
         strcpy(output_fields_copy, output_fields);      
     }
 
-    printf(COLOR_CYAN "Processing %s\n" COLOR_RESET, input_filename);
-
-    // Read the header line
-    if (fgets(headder, sizeof(headder), inputFile) == NULL) {
-        fprintf(stderr, "Can't read input file: '%s'\n", output_filename);
-        exit(EXIT_FAILURE);
-    }
-    if (strlen(headder) == sizeof(headder) - 1) {
-        fprintf(stderr, "Error: Line too long\n");
-        exit(EXIT_FAILURE);
-    }
-
-    const char *output_headder = var_get_str("output_headder", NULL);
-    if (output_headder) {
-        fwrite(output_headder, sizeof(char), strlen(output_headder), outputFile);
-        fwrite("\n", sizeof(char), strlen("\n"), outputFile);
-    }
-    else {
-        fwrite(headder, sizeof(char), strlen(headder), outputFile);
-    }
-    processed_size += strlen(headder);
-
-    tokenize_line(headder, input_csv_delimiter);
-    assign_variables_name();
-
     while (fgets(line, sizeof(line), inputFile) != NULL) {
         if (strlen(line) == sizeof(line) - 1) {
             fprintf(stderr, "Error: Line too long\n");
@@ -357,12 +334,31 @@ void process_csv(const char *input_filename, const char *output_filename, const 
         }
 
         processed_size += strlen(line);
+        update_progress_bar(processed_size, file_size, &last_progress);
+
         total_lines ++;
+        if (total_lines == 1) {
+            strcpy(headder, line);
+
+            const char *output_headder = var_get_str("output_headder", NULL);
+            if (output_headder) {
+                fwrite(output_headder, sizeof(char), strlen(output_headder), outputFile);
+                fwrite("\n", sizeof(char), strlen("\n"), outputFile);
+            }
+            else {
+                fwrite(headder, sizeof(char), strlen(headder), outputFile);
+            }
+            processed_size += strlen(headder);
+        
+            tokenize_line(headder, input_csv_delimiter);
+            assign_variables_name();
+            continue;
+        }
 
         strcpy(copy_line, line);
         tokenize_line(line, input_csv_delimiter);
 
-        if (total_lines == 1) {
+        if (total_lines == 2) {
             assign_variables_type();
             assign_variables_value();
 
@@ -383,55 +379,53 @@ void process_csv(const char *input_filename, const char *output_filename, const 
         }
 
         bool is_true = execute_code(input_code, variables) != 0;
-        if (is_true) {
-            if (output_code_count) {
-                char output_line[MAX_LINE_ITEMS];
-                char *output_line_ptr = output_line;
-                output_line[0] = '\0';
+        if (!is_true) continue;
 
-                for (int index = 0; index < output_code_count; index++) {
-                    Variable *res = execute_code_datatype(output_code[index], variables);
-
-                    switch (res->type) {
-                        case VAR_NUMBER:
-                            sprintf(output_line_ptr, "%f", res->value);
-                            break;
-
-                        case VAR_STRING:
-                            sprintf(output_line_ptr, "%s", res->str);
-                            if (res->is_dynamic) mem_free((void *) res->str);
-                            break;
-
-                        case VAR_DATETIME:
-                            {
-                                char buffer[20];
-                                strftime(buffer, sizeof(buffer), DATE_FORMAT, &res->datetime);
-                                sprintf(output_line_ptr, "%s", buffer);
-                            }
-                            break;
-
-                        default:
-                            fprintf(stderr, "Unknown variable type %d\n", res->type);
-                            exit(EXIT_FAILURE);
-                    }
-
-                    output_line_ptr = output_line + strlen(output_line);
-                    if (index < output_code_count - 1) {
-                        sprintf(output_line_ptr, "%s", output_delimiter);
-                        output_line_ptr = output_line + strlen(output_line);
-                    }
-                }
-                fwrite(output_line, sizeof(char), strlen(output_line), outputFile);
-                fwrite("\n", sizeof(char), strlen("\n"), outputFile);
-            }
-            else {
-                fwrite(copy_line, sizeof(char), strlen(copy_line), outputFile);
-            }
-
-            written_lines++;    
+        written_lines ++;
+ 
+        if (!output_code_count) {
+            fwrite(copy_line, sizeof(char), strlen(copy_line), outputFile);
+            continue;
         }
 
-        update_progress_bar(processed_size, file_size, &last_progress);
+        char output_line[MAX_LINE_ITEMS];
+        char *output_line_ptr = output_line;
+        output_line[0] = '\0';
+
+        for (int index = 0; index < output_code_count; index++) {
+            Variable *res = execute_code_datatype(output_code[index], variables);
+
+            switch (res->type) {
+                case VAR_NUMBER:
+                    sprintf(output_line_ptr, "%f", res->value);
+                    break;
+
+                case VAR_STRING:
+                    sprintf(output_line_ptr, "%s", res->str);
+                    if (res->is_dynamic) mem_free((void *) res->str);
+                    break;
+
+                case VAR_DATETIME:
+                    {
+                        char buffer[20];
+                        strftime(buffer, sizeof(buffer), DATE_FORMAT, &res->datetime);
+                        sprintf(output_line_ptr, "%s", buffer);
+                    }
+                    break;
+
+                default:
+                    fprintf(stderr, "Unknown variable type %d\n", res->type);
+                    exit(EXIT_FAILURE);
+            }
+
+            output_line_ptr = output_line + strlen(output_line);
+            if (index < output_code_count - 1) {
+                sprintf(output_line_ptr, "%s", output_delimiter);
+                output_line_ptr = output_line + strlen(output_line);
+            }
+        }
+        fwrite(output_line, sizeof(char), strlen(output_line), outputFile);
+        fwrite("\n", sizeof(char), strlen("\n"), outputFile);
     }
 
     double pct_written = (double)written_lines * 100 / total_lines;
@@ -493,7 +487,8 @@ int main(int argc, char *argv[]) {
 
         const char *ext = strrchr(entry->d_name, '.');
         if (ext && strcmp(ext, ".csv") == 0) {
-            char input_filename[PATH_MAX], output_filename[PATH_MAX];
+            char input_filename[PATH_MAX],
+                 output_filename[PATH_MAX];
             snprintf(input_filename, sizeof(input_filename), "%s/%s", input_dir, entry->d_name);
             snprintf(output_filename, sizeof(output_filename), "%s/%s", output_dir, entry->d_name);
 
