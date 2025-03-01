@@ -46,6 +46,9 @@ MemTrack * debug_find_ptr(void *ptr, const char *file, int line) {
         current = current->next;
     }
 
+    fprintf(stderr, COLOR_RED "Memory corruption detected. Can't find %p allocated at %s:%d\n" COLOR_RESET, ptr, file, line);
+    exit(EXIT_FAILURE);
+
 #if MALLOC_CALLSTACK
     void *array[10];
     size_t size = backtrace(array, 10);
@@ -58,9 +61,6 @@ MemTrack * debug_find_ptr(void *ptr, const char *file, int line) {
         free(strings);
     }
 #endif
-
-    fprintf(stderr, COLOR_RED "Memory corruption detected. Can't find %p allocated at %s:%d\n" COLOR_RESET, ptr, file, line);
-    exit(EXIT_FAILURE);
 
     return NULL;
 }
