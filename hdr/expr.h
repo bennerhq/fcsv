@@ -20,8 +20,9 @@
  
         <expression> ::= <conditional> | <arithmetic>
         <conditional> ::= <boolean> "?" <expression> ":" <expression> 
-        <boolean> ::= <arithmetic> <relop> <arithmetic>
-        <relop> ::= ">" | "<" | "=" | ">=" | "<=" | "!="
+        <boolean> ::= <arithmetic> <relop> <arithmetic> | <boolean> <logop> <boolean>
+        <relop> ::= ">" | "<" | "=" | ">=" | "<=" | "!=" | "in"
+        <logop> ::= "&" | "|"
 
         <arithmetic> ::= <term> | <arithmetic> ("+" | "-") <term>
         <term> ::= <factor> | <term> ("*" | "/") <factor>

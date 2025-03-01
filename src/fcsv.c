@@ -287,15 +287,10 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     long processed_size = 0;
 
     const Instruction *input_code = NULL; 
-
     int output_code_count = 0;
     const Instruction *output_code[MAX_LINE_ITEMS];
-
     const char *output_delimiter = NULL;
-
-    char headder[MAX_LINE_ITEMS];
     char line[MAX_LINE_ITEMS];
-    char copy_line[MAX_LINE_ITEMS];
 
     FILE *inputFile = fopen(input_filename, "rb");
     if (inputFile == NULL) {
@@ -333,11 +328,12 @@ void process_csv(const char *input_filename, const char *output_filename, const 
             exit(EXIT_FAILURE);
         }
 
+        total_lines ++;
         processed_size += strlen(line);
         update_progress_bar(processed_size, file_size, &last_progress);
 
-        total_lines ++;
         if (total_lines == 1) {
+            char headder[MAX_LINE_ITEMS];
             strcpy(headder, line);
 
             const char *output_headder = var_get_str("output_headder", NULL);
@@ -355,6 +351,7 @@ void process_csv(const char *input_filename, const char *output_filename, const 
             continue;
         }
 
+        char copy_line[MAX_LINE_ITEMS];
         strcpy(copy_line, line);
         tokenize_line(line, input_csv_delimiter);
 
@@ -447,6 +444,16 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 }
 
 int main(int argc, char *argv[]) {
+
+
+    const Instruction *input_code = NULL; 
+    input_code = parse_expression("'benner' in 'jens kaas benner'", variables);
+
+    print_code(input_code, variables);
+
+    Variable *res = execute_code_datatype(input_code, variables);
+    printf("Result: %f\n", res->value);
+exit(0);
     const char *input_dir = NULL;
     const char *output_dir = NULL;
     const char *expr = NULL;

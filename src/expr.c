@@ -90,6 +90,7 @@ const Token op_symbols[] = {
     {.str = "&",    .op = OP_AND},
     {.str = "|",    .op = OP_OR},
     {.str = "!",    .op = OP_NOT},
+    {.str = "in",   .op = OP_IN_STR},
     {.str = "?",    .op = TOK_CONDITION},
     {.str = ":",    .op = TOK_COLON},
     {.str = "(",    .op = TOK_LPAREN},
@@ -445,18 +446,28 @@ DataType parse_rel_expr() {
     DataType data_type_left = parse_arithmetic_expr();
     if (token.op == OP_EQ || token.op == OP_NEQ || 
         token.op == OP_LT || token.op == OP_GT || 
-        token.op == OP_LE || token.op == OP_GE) {
+        token.op == OP_LE || token.op == OP_GE || 
+        token.op == OP_IN_STR) {
         OpCode op = token.op;
 
         next_token();
         DataType data_type_right = parse_arithmetic_expr();
 
-        if (data_type_left != data_type_right) {
-            fprintf(stderr, "Type error: Mismatched types in relational expression\n");
-            exit(EXIT_FAILURE);
+        if (op == OP_IN_STR) {
+            if (data_type_left != VAR_STRING || data_type_right != VAR_STRING) {
+                fprintf(stderr, "Type error: Mismatched types in 'in' expression\n");
+                exit(EXIT_FAILURE);
+            }
+            emit(OP_IN_STR, 0, VAR_NUMBER);
         }
+        else {
+            if (data_type_left != data_type_right) {
+                fprintf(stderr, "Type error: Mismatched types in relational expression\n");
+                exit(EXIT_FAILURE);
+            }
 
-        emit_type(data_type_left, op, VAR_NUMBER);
+            emit_type(data_type_left, op, VAR_NUMBER);
+        }
         data_type_left = VAR_NUMBER;
     }
 

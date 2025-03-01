@@ -35,6 +35,7 @@ const char *op_names[] = {
     "JP   %03X",
     "JPZ  %03X",
     "HALT",
+    "IN$",
 
     "ADD",  "SUB",  "MUL",  "DIV",  "NEQ",  "LE",  "GE",  "LT",  "GT",  "EQ",  "AND",  "OR",  "NOT",
     "ADD#", "SUB#", "MUL#", "DIV#", "NEQ#", "LE#", "GE#", "LT#", "GT#", "EQ#", "AND#", "OR#", "NOT#",
@@ -199,6 +200,12 @@ re_type:
                 break;
 
             // String type
+            case OP_IN_STR:
+                sp--;
+                sp[-1].type = VAR_NUMBER;
+                sp[-1].value = strstr(sp[0].str, sp[-1].str) != NULL;
+                break;
+
             case OP_EQ_STR:
                 sp--;
                 sp[-1].type = VAR_NUMBER;
@@ -307,7 +314,7 @@ re_type:
                 break;
 
             default:
-                fprintf(stderr, "Unknown op code!");
+                fprintf(stderr, "Unknown op code %d!\n", op);
                 exit(EXIT_FAILURE);
         }
     }
