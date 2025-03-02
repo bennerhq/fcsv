@@ -99,7 +99,7 @@ void print_stack(Variable *stack, Variable *sp) {
     }
 }
 
-int strregex(const char *pattern, const char *str) {
+int strregex(const char *str, const char *pattern) {
     regex_t regex;
     int ret;
 
@@ -329,9 +329,8 @@ re_type:
             case OP_IN_REGEX_STR:
                 sp--;
                 sp[-1].type = VAR_NUMBER;
-                sp[-1].value = (strlen(sp[-1].str) > 0) && (strregex(sp[-1].str, sp[0].str) != 0);
+                sp[-1].value = (strlen(sp[-1].str) > 0) && (strregex(sp[0].str, sp[-1].str) != 0);
                 break;
-
 
             default:
                 fprintf(stderr, "Error: Unknown op code %d!\n", op);
