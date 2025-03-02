@@ -18,10 +18,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdarg.h>
 
 #include "../hdr/dmalloc.h"
 #include "../hdr/exec.h"
 #include "../hdr/expr.h"
+
+
+void var_print(const Variable * var);
+
 
 DataType parse_expr();
 DataType parse_term();
@@ -66,14 +71,14 @@ typedef struct {
 } Token;
 Token token;
 
-Instruction *code = NULL; 
-int code_size;
-
-const Variable *variables;
-
 const char *expr;
 const char *expr_begin;
 const char *expr_end;
+
+const Variable *expr_variables;
+
+Instruction *code = NULL; 
+int code_size;
 
 const Token op_symbols[] = {
     {.str = "",     .op = OP_NOP},
@@ -91,6 +96,7 @@ const Token op_symbols[] = {
     {.str = "|",    .op = OP_OR},
     {.str = "!",    .op = OP_NOT},
     {.str = "in",   .op = OP_IN_STR},
+    {.str = "rin",  .op = OP_IN_REGEX_STR},
     {.str = "?",    .op = TOK_CONDITION},
     {.str = ":",    .op = TOK_COLON},
     {.str = "(",    .op = TOK_LPAREN},
@@ -99,6 +105,17 @@ const Token op_symbols[] = {
     {.str = "false",.op = TOK_FALSE},
     {.str = "",     .op = TOK_END},
 };
+
+void parse_fatal(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    fprintf(stderr, "*** ERROR: ");
+    vfprintf(stderr, format, args);
+    fprintf(stderr, "    Parsing: %s\n", expr_begin);
+    va_end(args);
+
+    exit(EXIT_FAILURE);
+}
 
 void set_token(OpCode op, const char *match, int len) {
     const char *start = expr;
@@ -112,8 +129,7 @@ void set_token(OpCode op, const char *match, int len) {
         expr += len;
     }
     if (len >= MAX_STR_SIZE - 1) {
-        fprintf(stderr, "Error: String too long %s\n", start);
-        exit(EXIT_FAILURE);
+        parse_fatal("String too long %s\n", start);
     }
 
     char value[MAX_STR_SIZE];
@@ -145,15 +161,13 @@ void next_token_str(char find) {
     }
 
     if (*expr != find) {
-        fprintf(stderr, "Error: '%s' Can't find trailing '%c'\n", expr_begin, find);
-        exit(EXIT_FAILURE);
+        parse_fatal("'%s' Can't find trailing '%c'\n", expr_begin, find);
     }
 
     int len = expr - start;
     char *str = (char *) mem_malloc(len + 1);
     if (str == NULL) {
-        fprintf(stderr, "Out of memory\n");
-        exit(EXIT_FAILURE);
+        parse_fatal("Out of memory\n");
     }
     strncpy(str, start, len);
     token.op = TOK_VAR_STR;
@@ -208,14 +222,12 @@ void next_token() {
         return;
     }
 
-    fprintf(stderr, "Error: Undefined symbol '%c'\n", *expr);
-    exit(EXIT_FAILURE);
+    parse_fatal("Undefined symbol '%c'\n", *expr);
 }
 
 void emit_overflow() {
     if (code_size >= MAX_CODE_SIZE - 1) {
-        fprintf(stderr, "Error: code array overflow\n");
-        exit(EXIT_FAILURE);
+        parse_fatal("code array overflow\n");
     }
 }
 
@@ -242,12 +254,13 @@ void emit_type(DataType data_type, OpCode op, DataType data_type_result) {
         case VAR_STRING:
             emit(OP_BASE_STR + (op - OP_BASE), 0, data_type_result);
             break;
+
         case VAR_NUMBER:
             emit(OP_BASE_NUM + (op - OP_BASE), 0, data_type_result);
             break;
+
         default:
-            fprintf(stderr, "Unknown instruction type\n");
-            exit(EXIT_FAILURE);
+            parse_fatal("Unknown instruction type\n");
     }
 }
 
@@ -275,8 +288,7 @@ DataType parse_arithmetic_expr() {
         DataType data_type_right = parse_term();
 
         if (data_type_left != data_type_right) {
-            fprintf(stderr, "Type error: Mismatched types in arithmetic expression\n");
-            exit(EXIT_FAILURE);
+            parse_fatal("Mismatched types in arithmetic expression\n");
         }
 
         if (data_type_left == VAR_STRING) {
@@ -301,8 +313,7 @@ DataType parse_term() {
         if (data_type_left == VAR_STRING) {
             if (op == OP_MUL) {
                 if (data_type_right != VAR_NUMBER) {
-                    fprintf(stderr, "Type error: Multiplay string with number!\n");
-                    exit(EXIT_FAILURE);
+                    parse_fatal("Multiplay string must be number!\n");
                 }
                 emit(OP_MUL_STR, 0, VAR_STRING);
             }
@@ -330,9 +341,9 @@ DataType parse_factor() {
 
         case TOK_ID_NAME: {
             bool found = false;
-            for (int i = 0; variables[i].type != VAR_END; i++) {
-                if (strncmp(variables[i].name, token.name, strlen(token.name)) == 0) {
-                    data_type = variables[i].type;
+            for (int i = 0; expr_variables[i].type != VAR_END; i++) {
+                if (strncmp(expr_variables[i].name, token.name, strlen(token.name)) == 0) {
+                    data_type = expr_variables[i].type;
                     emit(OP_PUSH_VAR, i, data_type);
                     next_token();
 
@@ -342,8 +353,7 @@ DataType parse_factor() {
             }
 
             if (!found) {
-                fprintf(stderr, "Error: Undefined variable '%s'\n", token.name);
-                exit(EXIT_FAILURE);
+                parse_fatal("Undefined variable '%s'\n", token.name);
             }
             break;
         }
@@ -364,14 +374,13 @@ DataType parse_factor() {
             next_token();
             data_type = parse_expr();
             if (token.op != TOK_RPAREN) {
-                fprintf(stderr, "Error: Expected ')'\n");
-                exit(EXIT_FAILURE);
+                parse_fatal("Expected ')'\n");
             }
             next_token();
             break;
 
         default:
-            printf("*** ERROR: UPS.... token.op: %d\n", token.op);
+            parse_fatal("Unknown token: %d\n", token.op);
             break;
     }
 
@@ -385,8 +394,7 @@ DataType parse_bool(OpCode op, DataType (*parse_bool_func)()) {
         DataType data_type_right = parse_bool_func();
 
         if (data_type_left != data_type_right) {
-            fprintf(stderr, "Type error: Mismatched types in boolean expression\n");
-            exit(EXIT_FAILURE);
+            parse_fatal("Mismatched types in boolean expression\n");
         }
 
         emit_type(data_type_left, op, VAR_NUMBER);
@@ -428,8 +436,7 @@ DataType parse_bool_factor() {
             next_token();
             data_type = parse_expr();
             if (token.op != TOK_RPAREN) {
-                fprintf(stderr, "Error: Expected ')'\n");
-                exit(EXIT_FAILURE);
+                parse_fatal("Expected ')'\n");
             }
             next_token();
             break;
@@ -447,23 +454,21 @@ DataType parse_rel_expr() {
     if (token.op == OP_EQ || token.op == OP_NEQ || 
         token.op == OP_LT || token.op == OP_GT || 
         token.op == OP_LE || token.op == OP_GE || 
-        token.op == OP_IN_STR) {
+        token.op == OP_IN_STR || token.op == OP_IN_REGEX_STR) {
         OpCode op = token.op;
 
         next_token();
         DataType data_type_right = parse_arithmetic_expr();
 
-        if (op == OP_IN_STR) {
+        if (op == OP_IN_STR || op == OP_IN_REGEX_STR) {
             if (data_type_left != VAR_STRING || data_type_right != VAR_STRING) {
-                fprintf(stderr, "Type error: Mismatched types in 'in' expression\n");
-                exit(EXIT_FAILURE);
+                parse_fatal("Mismatched types in 'in' expression\n");
             }
-            emit(OP_IN_STR, 0, VAR_NUMBER);
+            emit(op, 0, VAR_NUMBER);
         }
         else {
             if (data_type_left != data_type_right) {
-                fprintf(stderr, "Type error: Mismatched types in relational expression\n");
-                exit(EXIT_FAILURE);
+                parse_fatal("Mismatched types in relational expression\n");
             }
 
             emit_type(data_type_left, op, VAR_NUMBER);
@@ -491,8 +496,7 @@ DataType parse_cond_expr() {
     emit(OP_JP, 0, VAR_UNKNOWN);
 
     if (token.op != TOK_COLON) {
-        fprintf(stderr, "Error: Expected ':' for conditional expression\n");
-        exit(EXIT_FAILURE);
+        parse_fatal("Expected ':' for conditional expression\n");
     }
     next_token(); // Skip ':'
 
@@ -500,8 +504,7 @@ DataType parse_cond_expr() {
     DataType data_type_false = parse_expr();   // Parse false branch
 
     if (data_type_true != data_type_false) {
-        fprintf(stderr, "Type error: Mismatched types in condition expression\n");
-        exit(EXIT_FAILURE);
+        parse_fatal("Mismatched types in condition expression\n");
     }
 
     code[code_false_branch].value = code_false;
@@ -516,7 +519,7 @@ void parse_cleaning(Instruction const *code) {
     }
 
     for (const Instruction *ip = code; ip->op != OP_HALT; ip++) {
-        if (ip->op == OP_PUSH_STR) {
+        if (ip->type == VAR_STRING && ip->op == OP_PUSH_STR) {
             mem_free((void *) ip->str);
         }
     }
@@ -525,12 +528,11 @@ void parse_cleaning(Instruction const *code) {
 
 const Instruction *parse_expression(const char *iexpr, const Variable *ivariables) {
     expr = iexpr;
-    variables = ivariables;
+    expr_variables = ivariables;
 
     code = (Instruction *) mem_malloc(MAX_CODE_SIZE * sizeof(Instruction *));
     if (code == NULL) {
-        fprintf(stderr, "Out of memory\n");
-        exit(EXIT_FAILURE);
+        parse_fatal("Out of memory\n");
     }
 
     code_size = 0;

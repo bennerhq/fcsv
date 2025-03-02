@@ -34,14 +34,46 @@ char *trim_whitespace(char *str) {
     return str;
 }
 
-Config conf_read_file(const char *filename) {
+void conf_add_key_value(Config *config, const char *key, const char *value) {
+    size_t old_size = config->count * sizeof(char *);
+    size_t new_size = (config->count + 1) * sizeof(char *);
+    config->keys = mem_realloc(config->keys, new_size, old_size);
+    config->values = mem_realloc(config->values, new_size, old_size);
+    if (!config->keys || !config->values) {
+        perror("Out of memory");
+        exit(EXIT_FAILURE);
+    }
+
+    config->keys[config->count] = mem_malloc(strlen(key) + 1);
+    config->values[config->count] = mem_malloc(strlen(value) + 1);
+    if (!config->keys[config->count] || !config->values[config->count]) {
+        perror("Out of memory");
+        exit(EXIT_FAILURE);
+    }
+
+    strcpy(config->keys[config->count], key);
+    strcpy(config->values[config->count], value);
+    config->count ++;
+}
+
+void conf_add_key_str(Config *config, const char *key, const char *value) {
+    if (strlen(value) + 2 >= MAX_LINE_LENGTH) {
+        fprintf(stderr, "Value too long\n");
+        exit(EXIT_FAILURE);
+    }
+
+    char value_str[MAX_LINE_LENGTH];
+    sprintf(value_str, "'%s'", value);
+    conf_add_key_value(config, key, value_str);
+}
+
+void conf_read_file(Config *config, const char *filename) {
     FILE *file = fopen(filename, "r");
     if (!file) {
         perror("Error opening file");
         exit(EXIT_FAILURE);
     }
 
-    Config config = {NULL, NULL, 0};
     char line_read[MAX_LINE_LENGTH];
     char *current_line = NULL;
     size_t current_line_size = 0;
@@ -83,6 +115,13 @@ Config conf_read_file(const char *filename) {
                 exit(EXIT_FAILURE);
             }
 
+            strcpy(key, current_line);
+            strcpy(value, delimiter + 1);
+            char *key_trim = trim_whitespace(key);
+            char *value_trim = trim_whitespace(value);
+
+            conf_add_key_value(config, key_trim, value_trim);
+/*
             size_t new_size = (config.count + 1) * sizeof(char *);
             size_t ole_size = config.count * sizeof(char *);
             config.keys = mem_realloc(config.keys, new_size, ole_size);
@@ -107,7 +146,7 @@ Config conf_read_file(const char *filename) {
             strcpy(config.keys[config.count], key_trim);
             strcpy(config.values[config.count], value_trim);
             config.count++;
-
+*/
             mem_free(key);
             mem_free(value);
         }
@@ -118,8 +157,6 @@ Config conf_read_file(const char *filename) {
     }
 
     fclose(file);
-
-    return config;
 }
 
 void conf_cleaning(Config *config) {

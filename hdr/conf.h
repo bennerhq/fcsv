@@ -19,7 +19,9 @@ typedef struct {
     int count;
 } Config;
 
-Config conf_read_file(const char *filename);
+void conf_add_key_value(Config *config, const char *key, const char *value);
+void conf_add_key_str(Config *config, const char *key, const char *value);
+void conf_read_file(Config *config, const char *filename);
 void conf_cleaning(Config *config);
 void conf_print(const Config *config);
 const char *conf_get(const Config *config, const char *key, const char* default_value);

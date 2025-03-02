@@ -36,15 +36,15 @@
 #define COLOR_YELLOW    "\033[33m"
 #define COLOR_CYAN      "\033[36m"
 
-#define MAX_LINE_ITEMS  1024
+#define MAX_VARIABLES   (1024)
+#define MAX_LINE_LENGTH (1024 * 10)
 
-const char *tokens[MAX_LINE_ITEMS];
+int variables_base = 0;
+Variable variables[MAX_VARIABLES];
+
+const char *tokens[MAX_VARIABLES];
 
 const char *input_csv_delimiter = ",";
-
-int variables_count = 0;
-int variables_base = 0;
-Variable variables[MAX_LINE_ITEMS];
 
 int is_valid_double(const char *str) {
     char *endptr;
@@ -68,6 +68,11 @@ void tokenize_line(const char *line, const char *delimiter) {
     char *end;
 
     while ((end = strstr(start, delimiter)) != NULL) {
+        if (count + 2 >= MAX_VARIABLES) {
+            fprintf(stderr, "Too many tokens\n");
+            exit(EXIT_FAILURE);
+        }
+
         *end = '\0';
         tokens[count++] = start;
         start = end + strlen(delimiter);
@@ -86,7 +91,7 @@ void tokenize_line(const char *line, const char *delimiter) {
     tokens[count] = NULL;
 }
 
-void var_print(Variable *var) {
+void var_print(const Variable *var) {
     printf("%s=", var->name);
     switch (var->type) {
         case VAR_NUMBER:
@@ -104,21 +109,43 @@ void var_print(Variable *var) {
                 printf("%s\n", buffer);
             }
             break;
+
         default:
-            printf("Unknown type: %d\n", var->type);
+            printf("Unknown variable type: %d !?!\n", var->type);
             break;
     }
 }
 
 void var_print_all() {
-    for (int i = 0; i < variables_count; i++) {
-        Variable *var = &variables[i];
+    printf("---- Variables ---- %p\n", variables);
+    for (int i = 0; variables[i].type != VAR_END; i++) {
+        const Variable *var = &variables[i];
+        printf("%2d  ", i);
         var_print(var);
+    }
+    printf("------------------------\n\n");
+}
+
+void var_cleaning(bool all) {
+    for (Variable *var = &variables[variables_base]; var->type != VAR_END; var++) {
+        if (var->type == VAR_STRING && var->is_dynamic) {
+            mem_free((void *) var->str);
+            var->str = NULL;
+            var->is_dynamic = false;
+        }
+    }
+
+    if (all) {
+        for (int idx = 0; idx < variables_base; idx++) {
+            if (variables[idx].type == VAR_STRING) {
+                mem_free((void *) variables[idx].str);
+            }
+        }
     }
 }
 
 const char *var_get_str(const char *name, const char *default_value) {
-    for (int i = 0; i < variables_count; i++) {
+    for (int i = 0; variables[i].type != VAR_END; i++) {
         if (strcmp(variables[i].name, name) == 0) {
             return variables[i].str;
         }
@@ -126,134 +153,115 @@ const char *var_get_str(const char *name, const char *default_value) {
     return default_value;
 }
 
-double var_get_number(const char *name) {
-    for (int i = 0; i < variables_count; i++) {
-        if (strcmp(variables[i].name, name) == 0) {
-            return variables[i].value;
-        }
-    }
-    return 0;
-}
-
-void var_push(Variable *var) {
-    if (variables_count >= MAX_LINE_ITEMS) {
-        fprintf(stderr, "Too many variables\n");
-        exit(EXIT_FAILURE);
-    }
-
-    Variable *new_var = &variables[variables_count ++];
-
-    new_var->type = var->type;
-    new_var->name = var->name;
-    new_var->is_dynamic = false;
-
-    switch (var->type) {
-        case VAR_NUMBER:
-            new_var->value = var->value;
-            break;
-
-        case VAR_STRING:
-            new_var->is_dynamic = true;
-            new_var->str = (char *) mem_malloc(strlen(var->str) + 1);
-            if (new_var->str == NULL) {
-                fprintf(stderr, "Out of memory\n");
-                exit(EXIT_FAILURE);
-            }
-
-            strcpy((char *)new_var->str, (char *)var->str);
-            break;
-
-        case VAR_DATETIME:
-            new_var->datetime = var->datetime; // FIXME: Copy??
-            break;
-
-        default:
-            fprintf(stderr, "Unknown variable type %d\n", var->type);
-            exit(EXIT_FAILURE);
-    }
-}
-
-void var_cleaning(bool all) {
-    for (int i = all ? 0 :variables_base; i < variables_count; i++) {
-        Variable *var = &variables[i];
-        if (var->is_dynamic) {
-            mem_free((void *) var->str);
-            var->str = NULL;
-        }
-    }
-}
-
 void assign_variables_config(Config *config) {
-    variables_count = 0;
-    for (int i = 0; i < config->count; i++) {
-        variables[variables_count].type = VAR_END;
+    int idx = 0;
+    while (idx < config->count) {
+        if (idx + 2 >= MAX_VARIABLES) {
+            fprintf(stderr, "Too many variables\n");
+            exit(EXIT_FAILURE);
+        }
 
-        const Instruction *code = parse_expression(config->values[i], variables);
-        Variable *var = execute_code_datatype(code, variables);
+        const char *name = config->keys[idx];
+        const char *expr = config->values[idx];
 
-        var->name = config->keys[i];
-        var_push(var);
+        Variable *var = &variables[idx];
+        var->type = VAR_END;
 
+        const Instruction *code = parse_expression(expr, variables);
+        const Variable *exec_var = execute_code_datatype(code, variables);
+
+        var->name = name;
+        var->type = exec_var->type;
+        var->is_dynamic = false;
+
+        switch (var->type) {
+            case VAR_NUMBER:
+                var->value = exec_var->value;
+                break;
+
+            case VAR_STRING:
+                var->str = (char *) mem_malloc(strlen(exec_var->str) + 1);
+                if (var->str == NULL) {
+                    fprintf(stderr, "Out of memory\n");
+                    exit(EXIT_FAILURE);
+                }
+
+                strcpy((char *)var->str, (char *)exec_var->str);
+                break;
+
+            case VAR_DATETIME:
+                var->datetime = exec_var->datetime; // FIXME: Copy??
+                break;
+
+            default:
+                fprintf(stderr, "Unknown variable type %d\n", exec_var->type);
+                exit(EXIT_FAILURE);
+        }
         parse_cleaning(code);
+
+        idx ++;
     }
 
-    variables[variables_count].type = VAR_END;
-    variables_base = variables_count;
+    variables_base = idx;
+    variables[variables_base].type = VAR_END;
 }
 
 void assign_variables_name() {
-    variables_count = variables_base;
-    for (int index = 0; tokens[index] != NULL; index++) {
-        Variable *var = &variables[variables_count ++];
-        var->name = tokens[index];
+    int idx = 0;
+    while (tokens[idx] != NULL) {
+        if (variables_base + idx + 2 >= MAX_VARIABLES) {
+            fprintf(stderr, "Too many variables\n");
+            exit(EXIT_FAILURE);
+        }
+
+        Variable *var = &variables[variables_base + idx];
+        var->name = tokens[idx];
         var->type = VAR_UNKNOWN;
         var->is_dynamic = false;
+
+        idx ++;
     }
-    variables[variables_count].type = VAR_END;
+    variables[variables_base + idx].type = VAR_END;
 }
 
-int assign_variables_type() {
-    int type_changed = 0;
+void assign_variables_type() {
+    for (int idx = 0; tokens[idx] != NULL; idx++) {
+        Variable *var = &variables[variables_base + idx];
+        var->is_dynamic = false;
 
-    for (int index = 0; tokens[index] != NULL; index++) {
-        Variable *var = &variables[variables_base + index];
-        if (is_valid_double(tokens[index])) {
-            if (var->type != VAR_NUMBER) type_changed = 1;
+        if (is_valid_double(tokens[idx])) {
             var->type = VAR_NUMBER;
-        } 
-        else if (is_valid_iso_datetime(tokens[index])) {
-            if (var->type != VAR_DATETIME) type_changed = 1;
+        }
+        else if (is_valid_iso_datetime(tokens[idx])) {
             var->type = VAR_DATETIME;
-        } 
+        }
         else {
-            if (var->type != VAR_STRING) type_changed = 1;
             var->type = VAR_STRING;
         }
     }
-
-    return type_changed;
 }
 
 void assign_variables_value() {
     var_cleaning(false);
-    for (int index = 0; tokens[index] != NULL; index++) {
-        Variable *var = &variables[variables_base + index];
+    for (int idx = 0; tokens[idx] != NULL; idx++) {
+        Variable *var = &variables[variables_base + idx];
+        var->is_dynamic = false;
         switch (var->type) {
             case VAR_NUMBER:
-                var->value = atof(tokens[index]);
+                var->value = atof(tokens[idx]);
                 break;
 
             case VAR_STRING:
-                var->str = tokens[index];
-                var->is_dynamic = false;
+                var->str = tokens[idx];
                 break;
 
             case VAR_DATETIME:
-                strptime(tokens[index], DATE_FORMAT, &var->datetime);
+                strptime(tokens[idx], DATE_FORMAT, &var->datetime);
                 break;
 
-            case VAR_UNKNOWN:
-            case VAR_END:
+            default:
+                fprintf(stderr, "Unknown variable type %d!?\n", var->type);
+                exit(EXIT_FAILURE);
                 break;
         }
     }
@@ -261,11 +269,12 @@ void assign_variables_value() {
 
 void  update_progress_bar(long processed_size, long file_size, long *last_progress) {
     int progress = (int)((processed_size * 100) / file_size);
+    if (progress > 100) progress = 100;
+
     if (progress == *last_progress) {
         return;
     }
     *last_progress = progress;
-
     struct winsize w;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
     int terminal_width = w.ws_col;
@@ -288,9 +297,9 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 
     const Instruction *input_code = NULL; 
     int output_code_count = 0;
-    const Instruction *output_code[MAX_LINE_ITEMS];
+    const Instruction *output_code[MAX_VARIABLES];
     const char *output_delimiter = NULL;
-    char line[MAX_LINE_ITEMS];
+    char line[MAX_LINE_LENGTH];
 
     FILE *inputFile = fopen(input_filename, "rb");
     if (inputFile == NULL) {
@@ -333,7 +342,7 @@ void process_csv(const char *input_filename, const char *output_filename, const 
         update_progress_bar(processed_size, file_size, &last_progress);
 
         if (total_lines == 1) {
-            char headder[MAX_LINE_ITEMS];
+            char headder[MAX_LINE_LENGTH];
             strcpy(headder, line);
 
             const char *output_headder = var_get_str("output_headder", NULL);
@@ -351,7 +360,7 @@ void process_csv(const char *input_filename, const char *output_filename, const 
             continue;
         }
 
-        char copy_line[MAX_LINE_ITEMS];
+        char copy_line[MAX_LINE_LENGTH];
         strcpy(copy_line, line);
         tokenize_line(line, input_csv_delimiter);
 
@@ -385,12 +394,12 @@ void process_csv(const char *input_filename, const char *output_filename, const 
             continue;
         }
 
-        char output_line[MAX_LINE_ITEMS];
+        char output_line[MAX_LINE_LENGTH];
         char *output_line_ptr = output_line;
         output_line[0] = '\0';
 
         for (int index = 0; index < output_code_count; index++) {
-            Variable *res = execute_code_datatype(output_code[index], variables);
+            const Variable *res = execute_code_datatype(output_code[index], variables);
 
             switch (res->type) {
                 case VAR_NUMBER:
@@ -399,7 +408,7 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 
                 case VAR_STRING:
                     sprintf(output_line_ptr, "%s", res->str);
-                    if (res->is_dynamic) mem_free((void *) res->str);
+                    if (res->type == VAR_STRING && res->is_dynamic) mem_free((void *) res->str);
                     break;
 
                 case VAR_DATETIME:
@@ -411,7 +420,7 @@ void process_csv(const char *input_filename, const char *output_filename, const 
                     break;
 
                 default:
-                    fprintf(stderr, "Unknown variable type %d\n", res->type);
+                    fprintf(stderr, "Unknown variable type %d!\n", res->type);
                     exit(EXIT_FAILURE);
             }
 
@@ -444,36 +453,38 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 }
 
 int main(int argc, char *argv[]) {
-
-
-    const Instruction *input_code = NULL; 
-    input_code = parse_expression("'benner' in 'jens kaas benner'", variables);
-
-    print_code(input_code, variables);
-
-    Variable *res = execute_code_datatype(input_code, variables);
-    printf("Result: %f\n", res->value);
-exit(0);
-    const char *input_dir = NULL;
-    const char *output_dir = NULL;
-    const char *expr = NULL;
-    Config config = {NULL, NULL, 0};
+    Config config = {
+        .keys = NULL, 
+        .values = NULL, 
+        .count = 0
+    };
+    variables_base = 0;
+    variables[variables_base].type = VAR_END;
+    
+    const char *home_dir_env = getenv("HOME");
+    if (home_dir_env != NULL) {
+        if (strlen(home_dir_env) + 1 >= PATH_MAX) {
+            fprintf(stderr, "HOME way too long!");
+            return EXIT_FAILURE;
+        }
+        conf_add_key_str(&config, "home_dir", home_dir_env);
+    }
 
     if (argc == 2) {
-        config = conf_read_file(argv[1]);
-
-        assign_variables_config(&config);
-
-        input_dir = var_get_str("source_dir", NULL);
-        output_dir = var_get_str("dest_dir", NULL);
-        expr = var_get_str("input_script", NULL);
-        input_csv_delimiter = var_get_str("input_csv_delimiter", ",");
+        conf_read_file(&config, argv[1]);
     }
     else if (argc == 4) {
-        input_dir = argv[1];
-        output_dir = argv[2];
-        expr = argv[3];
+        conf_add_key_str(&config, "source_dir", argv[1]);
+        conf_add_key_str(&config, "dest_dir", argv[2]);
+        conf_add_key_str(&config, "input_script", argv[3]);
     }
+
+    assign_variables_config(&config);
+
+    const char *input_dir = var_get_str("source_dir", NULL);
+    const char *output_dir = var_get_str("dest_dir", NULL);
+    const char *expr = var_get_str("input_script", NULL);
+    input_csv_delimiter = var_get_str("input_csv_delimiter", ",");
 
     if (!input_dir || !output_dir || !expr) {
         fprintf(stderr, "Usage: %s <conf file> | <input_directory> <output_directory> <expression>\n", argv[0]);
@@ -482,7 +493,7 @@ exit(0);
 
     DIR *dir = opendir(input_dir);
     if (dir == NULL) {
-        fprintf(stderr, "Error opening input directory: '%s'\n", input_dir);
+        fprintf(stderr, "Error opening input directory: \"%s\"\n", input_dir);
         return EXIT_FAILURE;
     }
 

@@ -87,7 +87,7 @@ void debug_check_ptr(void *user_ptr, const char *file, int line) {
 }
 
 void *debug_malloc(size_t size, const char *file, int line) {
-    debug_alloc_integrity(file, line);
+    debug_integrity(file, line);
 
     void *ptr = malloc(size + HEAD_MAGIC_SIZE + TAIL_MAGIC_SIZE);
     if (ptr) {
@@ -114,7 +114,7 @@ void *debug_malloc(size_t size, const char *file, int line) {
 }
 
 void debug_free(void *user_ptr, const char *file, int line) {
-    debug_alloc_integrity(file, line);
+    debug_integrity(file, line);
 
     if (!user_ptr) return;
 
@@ -139,14 +139,13 @@ void debug_free(void *user_ptr, const char *file, int line) {
 }
 
 void *debug_realloc(void* ptr, size_t size, size_t old_size, const char *file, int line) {
-    debug_alloc_integrity(file, line);
+    debug_integrity(file, line);
 
     void *new_ptr = debug_malloc(size, file, line);
     if (new_ptr) {
         if (ptr) {
             size_t new_size = size > old_size ? old_size : size;
             memcpy(new_ptr, ptr, new_size);
-
             debug_free(ptr, file, line);
         }
 
@@ -166,7 +165,7 @@ void debug_cleaning(const char *file, int line) {
     }
 }
 
-void debug_alloc_integrity(const char *file, int line) {
+void debug_integrity(const char *file, int line) {
     assert(file || line);
 
     MemTrack *current = mem_track_head;

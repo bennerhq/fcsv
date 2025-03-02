@@ -23,17 +23,19 @@
     void debug_free(void *ptr, const char *file, int line);
     void *debug_realloc(void* ptr, size_t size, size_t old_size, const char *file, int line);
     void debug_cleaning(const char *file, int line);
-    void debug_alloc_integrity(const char *file, int line);
+    void debug_integrity(const char *file, int line);
 
 #   define mem_malloc(size)                     debug_malloc(size, __FILE__, __LINE__)
 #   define mem_free(ptr)                        debug_free(ptr, __FILE__, __LINE__)
 #   define mem_realloc(ptr, size, old_size)     debug_realloc(ptr, size, old_size, __FILE__, __LINE__)
 #   define mem_cleaning()                       debug_cleaning(__FILE__, __LINE__)
+#   define mem_integrate()                      debug_integrity(__FILE__, __LINE__)
 #else
 #   define mem_malloc(size)                     malloc(size)
 #   define mem_free(ptr)                        free(ptr)
 #   define mem_realloc(ptr, size, old_size)     realloc(ptr, size)
 #   define mem_cleaning()                       {}
+#   define mem_integrate()                      {}
 #endif
 
 #endif /* __DMALLOC_H__ */

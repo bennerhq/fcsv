@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <regex.h>
 
 #include "../hdr/dmalloc.h"
 #include "../hdr/exec.h"
@@ -35,11 +36,11 @@ const char *op_names[] = {
     "JP   %03X",
     "JPZ  %03X",
     "HALT",
-    "IN$",
 
     "ADD",  "SUB",  "MUL",  "DIV",  "NEQ",  "LE",  "GE",  "LT",  "GT",  "EQ",  "AND",  "OR",  "NOT",
     "ADD#", "SUB#", "MUL#", "DIV#", "NEQ#", "LE#", "GE#", "LT#", "GT#", "EQ#", "AND#", "OR#", "NOT#",
     "ADD$", "SUB$", "MUL$", "DIV$", "NEQ$", "LE$", "GE$", "LT$", "GT$", "EQ$", "AND$", "OR$", "NOT$",
+    "IN$",  "XIN$"
 };
 
 void print_instruction(const Instruction *instr, const Variable *variables) {
@@ -97,12 +98,26 @@ void print_stack(Variable *stack, Variable *sp) {
     }
 }
 
-Variable *execute_code_datatype(const Instruction *code, const Variable *variables) {
-    Variable *sp = stack;
+int strregex(const char *pattern, const char *str) {
+    regex_t regex;
+    int ret;
 
+    ret = regcomp(&regex, pattern, REG_EXTENDED);
+    if (ret) return 0;
+
+    ret = regexec(&regex, str, 0, NULL, 0);
+    regfree(&regex);
+
+    // Return 1 if match found, 0 otherwise
+    return !ret;
+}
+
+Variable* execute_code_datatype(const Instruction *code, const Variable *variables) {
+    Variable* sp = stack;
+//print_code(code, variables);
     for (const Instruction *ip = code; ip->op != OP_HALT; ip++) {
         if ((sp - stack) + STACK_SIZE_BUFFER >= MAX_STACK_SIZE) {
-            fprintf(stderr, "Stack overflow!\n");
+            fprintf(stderr, "Error: Stack overflow!\n");
             exit(EXIT_FAILURE);
         }
 
@@ -200,16 +215,10 @@ re_type:
                 break;
 
             // String type
-            case OP_IN_STR:
-                sp--;
-                sp[-1].type = VAR_NUMBER;
-                sp[-1].value = strstr(sp[0].str, sp[-1].str) != NULL;
-                break;
-
             case OP_EQ_STR:
                 sp--;
                 sp[-1].type = VAR_NUMBER;
-                sp[-1].value = strcmp(sp[-1].str, sp[0].str) == 0;
+                sp[-1].value = strncmp(sp[-1].str, sp[0].str, strlen(sp[0].str)) == 0;
                 break;
             case OP_ADD_STR:
                 {
@@ -221,11 +230,10 @@ re_type:
                         fprintf(stderr, "Out of memory\n");
                         exit(EXIT_FAILURE);
                     }
-
                     strcpy(result, sp[-1].str);
                     strcat(result, sp[0].str);
 
-                    if (sp[-1].is_dynamic) mem_free((void *) sp[-1].str);
+                    if (sp[-1].is_dynamic) { /*void var_print(const Variable *var);  printf(">>");var_print(&sp[-1]);*/ mem_free((void *) sp[-1].str); }
 
                     sp[-1].str = result;
                     sp[-1].is_dynamic = true;
@@ -312,16 +320,27 @@ re_type:
                 sp[-1].type = VAR_NUMBER;
                 sp[-1].value = (strlen(sp[-1].str) == 0);
                 break;
+            case OP_IN_STR:
+                sp--;
+                sp[-1].type = VAR_NUMBER;
+                sp[-1].value = (strlen(sp[-1].str) > 0) && (strstr(sp[0].str, sp[-1].str) != 0);
+                break;
+            case OP_IN_REGEX_STR:
+                sp--;
+                sp[-1].type = VAR_NUMBER;
+                sp[-1].value = (strlen(sp[-1].str) > 0) && (strregex(sp[-1].str, sp[0].str) != 0);
+                break;
+
 
             default:
-                fprintf(stderr, "Unknown op code %d!\n", op);
+                fprintf(stderr, "Error: Unknown op code %d!\n", op);
                 exit(EXIT_FAILURE);
         }
     }
 
     sp --;
     if (sp != stack) {
-        fprintf(stderr, "No results!\n");
+        fprintf(stderr, "Error: No results!\n");
         exit(EXIT_FAILURE);
     }
 
@@ -335,11 +354,11 @@ double execute_code(const Instruction *code, const Variable *variables) {
 
     switch (result->type) {
         case VAR_NUMBER:
-        value = result->value;
+            value = result->value;
             break;
 
         case VAR_STRING:
-        value = strlen(result->str) > 0;
+            value = strlen(result->str) > 0;
             if (result->is_dynamic) mem_free((void *) result->str);
             break;
 
