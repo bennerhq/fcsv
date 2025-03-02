@@ -453,22 +453,20 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 }
 
 int main(int argc, char *argv[]) {
-    Config config = {
-        .keys = NULL, 
-        .values = NULL, 
-        .count = 0
-    };
-    variables_base = 0;
-    variables[variables_base].type = VAR_END;
-    
-    const char *home_dir_env = getenv("HOME");
-    if (home_dir_env != NULL) {
-        if (strlen(home_dir_env) + 1 >= PATH_MAX) {
-            fprintf(stderr, "HOME way too long!");
-            return EXIT_FAILURE;
-        }
-        conf_add_key_str(&config, "home_dir", home_dir_env);
-    }
+
+
+    const Instruction *input_code = NULL; 
+    input_code = parse_expression("'benner' in 'jens kaas benner'", variables);
+
+    print_code(input_code, variables);
+
+    Variable *res = execute_code_datatype(input_code, variables);
+    printf("Result: %f\n", res->value);
+exit(0);
+    const char *input_dir = NULL;
+    const char *output_dir = NULL;
+    const char *expr = NULL;
+    Config config = {NULL, NULL, 0};
 
     if (argc == 2) {
         conf_read_file(&config, argv[1]);

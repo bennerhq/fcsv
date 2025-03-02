@@ -33,6 +33,7 @@ const char *op_names[] = {
     "PUSH %d",
     "PUSH %s [%d]",
     "PUSH '%s'",
+    "IN$",
     "JP   %03X",
     "JPZ  %03X",
     "HALT",
