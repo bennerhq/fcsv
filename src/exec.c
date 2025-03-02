@@ -32,10 +32,10 @@ const char *op_names[] = {
     "PUSH %d",
     "PUSH %s [%d]",
     "PUSH '%s'",
+    "IN$",
     "JP   %03X",
     "JPZ  %03X",
     "HALT",
-    "IN$",
 
     "ADD",  "SUB",  "MUL",  "DIV",  "NEQ",  "LE",  "GE",  "LT",  "GT",  "EQ",  "AND",  "OR",  "NOT",
     "ADD#", "SUB#", "MUL#", "DIV#", "NEQ#", "LE#", "GE#", "LT#", "GT#", "EQ#", "AND#", "OR#", "NOT#",

@@ -444,16 +444,6 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 }
 
 int main(int argc, char *argv[]) {
-
-
-    const Instruction *input_code = NULL; 
-    input_code = parse_expression("'benner' in 'jens kaas benner'", variables);
-
-    print_code(input_code, variables);
-
-    Variable *res = execute_code_datatype(input_code, variables);
-    printf("Result: %f\n", res->value);
-exit(0);
     const char *input_dir = NULL;
     const char *output_dir = NULL;
     const char *expr = NULL;

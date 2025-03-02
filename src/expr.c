@@ -242,9 +242,11 @@ void emit_type(DataType data_type, OpCode op, DataType data_type_result) {
         case VAR_STRING:
             emit(OP_BASE_STR + (op - OP_BASE), 0, data_type_result);
             break;
+
         case VAR_NUMBER:
             emit(OP_BASE_NUM + (op - OP_BASE), 0, data_type_result);
             break;
+
         default:
             fprintf(stderr, "Unknown instruction type\n");
             exit(EXIT_FAILURE);
