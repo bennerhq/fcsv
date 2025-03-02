@@ -234,7 +234,7 @@ re_type:
                     strcpy(result, sp[-1].str);
                     strcat(result, sp[0].str);
 
-                    if (sp[-1].is_dynamic) { /*void var_print(const Variable *var);  printf(">>");var_print(&sp[-1]);*/ mem_free((void *) sp[-1].str); }
+                    if (sp[-1].is_dynamic) mem_free((void *) sp[-1].str);
 
                     sp[-1].str = result;
                     sp[-1].is_dynamic = true;
