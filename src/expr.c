@@ -110,11 +110,11 @@ void parse_fatal(ParseState *state, const char *format, ...) {
     fprintf(stderr, "\n\n*** ERROR: ");
     vfprintf(stderr, format, args);
     fprintf(stderr, "    Parsing: %s\n", state->expr_begin);
-    fprintf(stderr, "             ");
+    fprintf(stderr, "            ");
     for (int i = 0; i < state->expr - state->expr_begin; i++) {
         fprintf(stderr, " ");
     }
-    fprintf(stderr, "^\n");
+    fprintf(stderr, "/^\\\n");
     va_end(args);
 
     exit(EXIT_FAILURE);
