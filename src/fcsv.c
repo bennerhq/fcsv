@@ -117,7 +117,7 @@ void var_print(const Variable *var) {
 }
 
 void var_print_all() {
-    printf("---- Variables ---- %p\n", variables);
+    printf("---- Variables ---------\n");
     for (int i = 0; variables[i].type != VAR_END; i++) {
         const Variable *var = &variables[i];
         printf("%2d  ", i);
@@ -127,6 +127,14 @@ void var_print_all() {
 }
 
 void var_cleaning(bool all) {
+    if (all) {
+        for (int idx = 0; idx < variables_base; idx++) {
+            if (variables[idx].type == VAR_STRING) {
+                mem_free((void *) variables[idx].str);
+            }
+        }
+    }
+
     for (Variable *var = &variables[variables_base]; var->type != VAR_END; var++) {
         if (var->type == VAR_STRING && var->is_dynamic) {
             mem_free((void *) var->str);
@@ -135,13 +143,6 @@ void var_cleaning(bool all) {
         }
     }
 
-    if (all) {
-        for (int idx = 0; idx < variables_base; idx++) {
-            if (variables[idx].type == VAR_STRING) {
-                mem_free((void *) variables[idx].str);
-            }
-        }
-    }
 }
 
 const char *var_get_str(const char *name, const char *default_value) {
@@ -478,7 +479,6 @@ int main(int argc, char *argv[]) {
         conf_add_key_str(&config, "dest_dir", argv[2]);
         conf_add_key_str(&config, "input_script", argv[3]);
     }
-
     assign_variables_config(&config);
 
     const char *input_dir = var_get_str("source_dir", NULL);
