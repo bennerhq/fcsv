@@ -76,6 +76,8 @@
 #   define OP_NOT_STR      (OP_BASE_STR + 12)
 #   define OP_IN_STR       (OP_BASE_STR + 13)
 #   define OP_IN_REGEX_STR (OP_BASE_STR + 14)
+#   define OP_UPPER_STR    (OP_BASE_STR + 15)
+#   define OP_LOWER_STR    (OP_BASE_STR + 16)
 
 #define VAR_BASE        (1000)
 #define VAR_NUMBER      (VAR_BASE + 0)

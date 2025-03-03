@@ -21,12 +21,12 @@
         <expression> ::= <conditional> | <arithmetic>
         <conditional> ::= <boolean> "?" <expression> ":" <expression> 
         <boolean> ::= <arithmetic> <relop> <arithmetic> | <boolean> <logop> <boolean>
-        <relop> ::= ">" | "<" | "=" | ">=" | "<=" | "!=" | "in"
+        <relop> ::= ">" | "<" | "=" | ">=" | "<=" | "!=" | "in" | "rin"
         <logop> ::= "&" | "|"
 
         <arithmetic> ::= <term> | <arithmetic> ("+" | "-") <term>
         <term> ::= <factor> | <term> ("*" | "/") <factor>
-        <factor> ::= <number> | "(" <expression> ")" | <variable>
+        <factor> ::= <number> | "(" <expression> ")" | <variable> | "!" <factor> | "up" <factor> | "dn" <factor>
         <number> ::= <digit> | <number> <digit>
         <digit> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
         <variable> ::= <letter> | <variable> <letter> | <variable> <digit>

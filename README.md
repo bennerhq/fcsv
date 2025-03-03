@@ -47,6 +47,7 @@ excessive memory usage.
 - Handle CSV with and without headline (cli controlled)
 - Make scripting language turing-complete!?
 - Implement Date/Time in scripting lang
+- Unicode upper / lower case handeling
 
 ## Usage
 

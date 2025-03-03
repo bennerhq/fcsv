@@ -69,29 +69,31 @@ const struct {
     const char *str;
     OpCode op;
 } op_symbols[] = {
-    {.str = "",     .op = OP_NOP},
-    {.str = "+",    .op = OP_ADD},
-    {.str = "-",    .op = OP_SUB},
-    {.str = "*",    .op = OP_MUL},
-    {.str = "/",    .op = OP_DIV},
-    {.str = "!=",   .op = OP_NEQ},
-    {.str = "<=",   .op = OP_LE},
-    {.str = ">=",   .op = OP_GE},
-    {.str = "<",    .op = OP_LT},
-    {.str = ">",    .op = OP_GT},
-    {.str = "=",    .op = OP_EQ},
-    {.str = "&",    .op = OP_AND},
-    {.str = "|",    .op = OP_OR},
-    {.str = "!",    .op = OP_NOT},
-    {.str = "in",   .op = OP_IN_STR},
-    {.str = "rin",  .op = OP_IN_REGEX_STR},
-    {.str = "?",    .op = TOK_CONDITION},
-    {.str = ":",    .op = TOK_COLON},
-    {.str = "(",    .op = TOK_LPAREN},
-    {.str = ")",    .op = TOK_RPAREN},
-    {.str = "true", .op = TOK_TRUE},
-    {.str = "false",.op = TOK_FALSE},
-    {.str = "",     .op = TOK_END},
+    {.str = "",         .op = OP_NOP},
+    {.str = "+",        .op = OP_ADD},
+    {.str = "-",        .op = OP_SUB},
+    {.str = "*",        .op = OP_MUL},
+    {.str = "/",        .op = OP_DIV},
+    {.str = "!=",       .op = OP_NEQ},
+    {.str = "<=",       .op = OP_LE},
+    {.str = ">=",       .op = OP_GE},
+    {.str = "<",        .op = OP_LT},
+    {.str = ">",        .op = OP_GT},
+    {.str = "=",        .op = OP_EQ},
+    {.str = "&",        .op = OP_AND},
+    {.str = "|",        .op = OP_OR},
+    {.str = "up",       .op = OP_UPPER_STR},
+    {.str = "dn",       .op = OP_LOWER_STR},
+    {.str = "!",        .op = OP_NOT},
+    {.str = "in",       .op = OP_IN_STR},
+    {.str = "rin",      .op = OP_IN_REGEX_STR},
+    {.str = "?",        .op = TOK_CONDITION},
+    {.str = ":",        .op = TOK_COLON},
+    {.str = "(",        .op = TOK_LPAREN},
+    {.str = ")",        .op = TOK_RPAREN},
+    {.str = "true",     .op = TOK_TRUE},
+    {.str = "false",    .op = TOK_FALSE},
+    {.str = "",         .op = TOK_END},
 };
 
 DataType parse_expr(ParseState *state);
@@ -273,7 +275,8 @@ DataType parse_expr(ParseState *state) {
     if (state->op == TOK_TRUE || state->op == TOK_FALSE || 
         state->op == OP_NOT || state->op == TOK_LPAREN || 
         state->op == TOK_ID_NAME || state->op == TOK_VAR_IDX ||
-        state->op == TOK_NUMBER || state->op == TOK_VAR_STR) {
+        state->op == TOK_NUMBER || state->op == TOK_VAR_STR ||
+        state->op == OP_UPPER_STR || state->op == OP_LOWER_STR) {
         data_type = parse_cond_expr(state);
     } else {
         data_type = parse_arithmetic_expr(state);
@@ -433,6 +436,16 @@ DataType parse_bool_factor(ParseState *state) {
             next_token(state);
             data_type = parse_bool_factor(state);
             emit(state, OP_NOT, 0, VAR_NUMBER);
+            break;
+
+        case OP_UPPER_STR:
+        case OP_LOWER_STR:
+            { 
+                OpCode op = state->op;
+                next_token(state);
+                data_type = parse_bool_factor(state);
+                emit(state, op, 0, VAR_STRING);
+            }
             break;
 
         case TOK_LPAREN:

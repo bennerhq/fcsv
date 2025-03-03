@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <regex.h>
 
 #include "../hdr/dmalloc.h"
@@ -33,7 +34,6 @@ const char *op_names[] = {
     "PUSH %d",
     "PUSH %s [%d]",
     "PUSH '%s'",
-    "IN$",
     "JP   %03X",
     "JPZ  %03X",
     "HALT",
@@ -41,7 +41,8 @@ const char *op_names[] = {
     "ADD",  "SUB",  "MUL",  "DIV",  "NEQ",  "LE",  "GE",  "LT",  "GT",  "EQ",  "AND",  "OR",  "NOT",
     "ADD#", "SUB#", "MUL#", "DIV#", "NEQ#", "LE#", "GE#", "LT#", "GT#", "EQ#", "AND#", "OR#", "NOT#",
     "ADD$", "SUB$", "MUL$", "DIV$", "NEQ$", "LE$", "GE$", "LT$", "GT$", "EQ$", "AND$", "OR$", "NOT$",
-    "IN$",  "XIN$"
+    "IN$",  "XIN$",
+    "UP$",  "LOW$"
 };
 
 void print_instruction(const Instruction *instr, const Variable *variables) {
@@ -113,9 +114,27 @@ int strregex(const char *str, const char *pattern) {
     return !ret;
 }
 
+void to_strcase(Variable *sp, int (*func)(int)) {
+    char *copy = (char *) mem_malloc(strlen(sp->str) + 1);
+    if (copy == NULL) {
+        fprintf(stderr, "Out of memory\n");
+        exit(EXIT_FAILURE);
+    }
+    strcpy(copy, sp->str);
+    if (sp->is_dynamic) mem_free((void *) sp->str);
+
+    for (char *p = copy; *p; p++) {
+        *p = func(*p);
+    }
+
+    sp->type = VAR_STRING;
+    sp->str = copy;
+    sp->is_dynamic = true;
+}
+
 Variable* execute_code_datatype(const Instruction *code, const Variable *variables) {
     Variable* sp = stack;
-//print_code(code, variables);
+
     for (const Instruction *ip = code; ip->op != OP_HALT; ip++) {
         if ((sp - stack) + STACK_SIZE_BUFFER >= MAX_STACK_SIZE) {
             fprintf(stderr, "Error: Stack overflow!\n");
@@ -330,6 +349,12 @@ re_type:
                 sp--;
                 sp[-1].type = VAR_NUMBER;
                 sp[-1].value = (strlen(sp[-1].str) > 0) && (strregex(sp[0].str, sp[-1].str) != 0);
+                break;
+            case OP_UPPER_STR:
+                to_strcase(&sp[-1], toupper);
+                break;
+            case OP_LOWER_STR:
+                to_strcase(&sp[-1], tolower);
                 break;
 
             default:
