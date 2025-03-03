@@ -41,8 +41,8 @@ const char *op_names[] = {
     "ADD",  "SUB",  "MUL",  "DIV",  "NEQ",  "LE",  "GE",  "LT",  "GT",  "EQ",  "AND",  "OR",  "NOT",
     "ADD#", "SUB#", "MUL#", "DIV#", "NEQ#", "LE#", "GE#", "LT#", "GT#", "EQ#", "AND#", "OR#", "NOT#",
     "ADD$", "SUB$", "MUL$", "DIV$", "NEQ$", "LE$", "GE$", "LT$", "GT$", "EQ$", "AND$", "OR$", "NOT$",
-    "IN$",  "XIN$",
-    "UP$",  "LOW$"
+
+    "IN$",  "XIN$", "UP$",  "LO$"
 };
 
 void print_instruction(const Instruction *instr, const Variable *variables) {
