@@ -24,27 +24,13 @@
 #include "../hdr/exec.h"
 #include "../hdr/expr.h"
 
-
-void var_print(const Variable * var);
-
-
-DataType parse_expr();
-DataType parse_term();
-DataType parse_factor();
-DataType parse_bool_expr();
-DataType parse_bool_term();
-DataType parse_bool_factor();
-DataType parse_rel_expr();
-DataType parse_arithmetic_expr();
-DataType parse_cond_expr();
-
 #define IS_SPACE        " \t\n\r\v\f"
 #define IS_INT          "0123456789"
 #define IS_DOUBLE       IS_INT "."
 #define IS_ALPHA        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
 #define IS_ALPHA_INT    IS_ALPHA IS_INT
 
-#define MAX_STR_SIZE    (32)
+#define MAX_NAME_LEN    (32)
 #define MAX_CODE_SIZE   (1024)
 
 #define TOK_BASE        (1000)
@@ -64,7 +50,7 @@ typedef struct {
     OpCode op;
     DataType type;
     union {
-        char name[MAX_STR_SIZE];
+        char name[MAX_NAME_LEN];
         const char *str;
         double value;
     };
@@ -106,6 +92,16 @@ const Token op_symbols[] = {
     {.str = "",     .op = TOK_END},
 };
 
+DataType parse_expr();
+DataType parse_term();
+DataType parse_factor();
+DataType parse_bool_expr();
+DataType parse_bool_term();
+DataType parse_bool_factor();
+DataType parse_rel_expr();
+DataType parse_arithmetic_expr();
+DataType parse_cond_expr();
+
 void parse_fatal(const char *format, ...) {
     va_list args;
     va_start(args, format);
@@ -128,11 +124,11 @@ void set_token(OpCode op, const char *match, int len) {
     else {
         expr += len;
     }
-    if (len >= MAX_STR_SIZE - 1) {
+
+    if (len >= MAX_NAME_LEN - 1) {
         parse_fatal("String too long %s\n", start);
     }
-
-    char value[MAX_STR_SIZE];
+    char value[MAX_NAME_LEN];
     strncpy(value, start, len);
     value[len] = '\0';
 
