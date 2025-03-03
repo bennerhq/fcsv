@@ -232,7 +232,7 @@ void emit_overflow(ParseState *state) {
     if (state->code_size >= MAX_CODE_SIZE - 1) {
         parse_fatal(state, "Program overflow!\n");
     }
-   }
+}
 
 void emit(ParseState *state, OpCode op, double value, DataType type) {
     emit_overflow(state);
@@ -479,7 +479,7 @@ DataType parse_rel_expr(ParseState *state) {
 
         if (op == OP_IN_STR || op == OP_IN_REGEX_STR) {
             if (data_type_left != VAR_STRING || data_type_right != VAR_STRING) {
-                parse_fatal(state, "Mismatched types in 'in' expression\n");
+                parse_fatal(state, "Mismatched types in 'in' or 'rin' expression\n");
             }
             emit(state, op, 0, VAR_NUMBER);
         }

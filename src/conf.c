@@ -57,7 +57,7 @@ void conf_add_key_value(Config *config, const char *key, const char *value) {
 }
 
 void conf_add_key_str(Config *config, const char *key, const char *value) {
-    if (strlen(value) + 2 >= MAX_LINE_LENGTH) {
+    if (strlen(value) + 3 >= MAX_LINE_LENGTH) {
         fprintf(stderr, "Value too long\n");
         exit(EXIT_FAILURE);
     }
@@ -70,7 +70,7 @@ void conf_add_key_str(Config *config, const char *key, const char *value) {
 void conf_read_file(Config *config, const char *filename) {
     FILE *file = fopen(filename, "r");
     if (!file) {
-        perror("Error opening file");
+        fprintf(stderr, "Can't open file %s\n", filename);
         exit(EXIT_FAILURE);
     }
 
@@ -83,7 +83,6 @@ void conf_read_file(Config *config, const char *filename) {
             fprintf(stderr, "Error: Line too long\n");
             exit(EXIT_FAILURE);
         }
-
         char *line = trim_whitespace(line_read);
         if (*line == '\0' || *line == '#') {
             continue;
