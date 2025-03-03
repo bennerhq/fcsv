@@ -111,7 +111,7 @@ typedef struct {
 } Instruction;
 
 void print_code(const Instruction *code, const Variable *variables);
-Variable *execute_code_datatype(const Instruction *code, const Variable *variables);
+Variable execute_code_datatype(const Instruction *code, const Variable *variables);
 double execute_code(const Instruction *code, const Variable *variables);
 
 #endif /* __EXEC_H__ */

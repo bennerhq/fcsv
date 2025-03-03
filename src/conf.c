@@ -121,32 +121,7 @@ void conf_read_file(Config *config, const char *filename) {
             char *value_trim = trim_whitespace(value);
 
             conf_add_key_value(config, key_trim, value_trim);
-/*
-            size_t new_size = (config.count + 1) * sizeof(char *);
-            size_t ole_size = config.count * sizeof(char *);
-            config.keys = mem_realloc(config.keys, new_size, ole_size);
-            config.values = mem_realloc(config.values, new_size, ole_size);
-            if (!config.keys || !config.values) {
-                perror("Out of memory");
-                exit(EXIT_FAILURE);
-            }
 
-            strcpy(key, current_line);
-            strcpy(value, delimiter + 1);
-            char *key_trim = trim_whitespace(key);
-            char *value_trim = trim_whitespace(value);
-
-            config.keys[config.count] = mem_malloc(strlen(key_trim) + 1);
-            config.values[config.count] = mem_malloc(strlen(value_trim) + 1);
-            if (!config.keys[config.count] || !config.values[config.count]) {
-                perror("Out of memory");
-                exit(EXIT_FAILURE);
-            }
-
-            strcpy(config.keys[config.count], key_trim);
-            strcpy(config.values[config.count], value_trim);
-            config.count++;
-*/
             mem_free(key);
             mem_free(value);
         }

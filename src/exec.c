@@ -27,8 +27,6 @@
 #define MAX_STACK_SIZE      (1024)
 #define STACK_SIZE_BUFFER   (10)
 
-Variable stack[MAX_STACK_SIZE]; // Not thread safe
-
 const char *op_names[] = {
     "NOP",
     "PUSH %d",
@@ -132,7 +130,8 @@ void to_strcase(Variable *sp, int (*func)(int)) {
     sp->is_dynamic = true;
 }
 
-Variable* execute_code_datatype(const Instruction *code, const Variable *variables) {
+Variable execute_code_datatype(const Instruction *code, const Variable *variables) {
+    Variable stack[MAX_STACK_SIZE]; // Not thread safe
     Variable* sp = stack;
 
     for (const Instruction *ip = code; ip->op != OP_HALT; ip++) {
@@ -369,22 +368,21 @@ re_type:
         exit(EXIT_FAILURE);
     }
 
-    return sp;
+    return *sp;
 }
 
 double execute_code(const Instruction *code, const Variable *variables) {
-    Variable *result = execute_code_datatype(code, variables);
-
     double value = 0;
+    Variable result = execute_code_datatype(code, variables);
 
-    switch (result->type) {
+    switch (result.type) {
         case VAR_NUMBER:
-            value = result->value;
+            value = result.value;
             break;
 
         case VAR_STRING:
-            value = strlen(result->str) > 0;
-            if (result->is_dynamic) mem_free((void *) result->str);
+            value = strlen(result.str) > 0;
+            if (result.is_dynamic) mem_free((void *) result.str);
             break;
 
         case VAR_DATETIME:

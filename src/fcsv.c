@@ -169,33 +169,33 @@ void assign_variables_config(Config *config) {
         var->type = VAR_END;
 
         const Instruction *code = parse_expression(expr, variables);
-        const Variable *exec_var = execute_code_datatype(code, variables);
+        const Variable exec_var = execute_code_datatype(code, variables);
 
         var->name = name;
-        var->type = exec_var->type;
+        var->type = exec_var.type;
         var->is_dynamic = false;
 
         switch (var->type) {
             case VAR_NUMBER:
-                var->value = exec_var->value;
+                var->value = exec_var.value;
                 break;
 
             case VAR_STRING:
-                var->str = (char *) mem_malloc(strlen(exec_var->str) + 1);
+                var->str = (char *) mem_malloc(strlen(exec_var.str) + 1);
                 if (var->str == NULL) {
                     fprintf(stderr, "Out of memory\n");
                     exit(EXIT_FAILURE);
                 }
 
-                strcpy((char *)var->str, (char *)exec_var->str);
+                strcpy((char *)var->str, (char *)exec_var.str);
                 break;
 
             case VAR_DATETIME:
-                var->datetime = exec_var->datetime; // FIXME: Copy??
+                var->datetime = exec_var.datetime; // FIXME: Copy??
                 break;
 
             default:
-                fprintf(stderr, "Unknown variable type %d\n", exec_var->type);
+                fprintf(stderr, "Unknown variable type %d\n", exec_var.type);
                 exit(EXIT_FAILURE);
         }
         parse_cleaning(code);
@@ -400,28 +400,28 @@ void process_csv(const char *input_filename, const char *output_filename, const 
         output_line[0] = '\0';
 
         for (int index = 0; index < output_code_count; index++) {
-            const Variable *res = execute_code_datatype(output_code[index], variables);
+            const Variable res = execute_code_datatype(output_code[index], variables);
 
-            switch (res->type) {
+            switch (res.type) {
                 case VAR_NUMBER:
-                    sprintf(output_line_ptr, "%f", res->value);
+                    sprintf(output_line_ptr, "%f", res.value);
                     break;
 
                 case VAR_STRING:
-                    sprintf(output_line_ptr, "%s", res->str);
-                    if (res->type == VAR_STRING && res->is_dynamic) mem_free((void *) res->str);
+                    sprintf(output_line_ptr, "%s", res.str);
+                    if (res.type == VAR_STRING && res.is_dynamic) mem_free((void *) res.str);
                     break;
 
                 case VAR_DATETIME:
                     {
                         char buffer[20];
-                        strftime(buffer, sizeof(buffer), DATE_FORMAT, &res->datetime);
+                        strftime(buffer, sizeof(buffer), DATE_FORMAT, &res.datetime);
                         sprintf(output_line_ptr, "%s", buffer);
                     }
                     break;
 
                 default:
-                    fprintf(stderr, "Unknown variable type %d!\n", res->type);
+                    fprintf(stderr, "Unknown variable type %d!\n", res.type);
                     exit(EXIT_FAILURE);
             }
 
