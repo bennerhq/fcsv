@@ -67,7 +67,7 @@ typedef struct {
 
 const struct {
     const char *str;
-    OpCode op;
+    const OpCode op;
 } op_symbols[] = {
     {.str = "",         .op = OP_NOP},
     {.str = "+",        .op = OP_ADD},
@@ -82,11 +82,11 @@ const struct {
     {.str = "=",        .op = OP_EQ},
     {.str = "&",        .op = OP_AND},
     {.str = "|",        .op = OP_OR},
-    {.str = "up",       .op = OP_UPPER_STR},
-    {.str = "dn",       .op = OP_LOWER_STR},
     {.str = "!",        .op = OP_NOT},
     {.str = "in",       .op = OP_IN_STR},
     {.str = "rin",      .op = OP_IN_REGEX_STR},
+    {.str = "up",       .op = OP_UPPER_STR},
+    {.str = "dn",       .op = OP_LOWER_STR},
     {.str = "?",        .op = TOK_CONDITION},
     {.str = ":",        .op = TOK_COLON},
     {.str = "(",        .op = TOK_LPAREN},
@@ -230,9 +230,9 @@ void next_token(ParseState *state) {
 
 void emit_overflow(ParseState *state) {
     if (state->code_size >= MAX_CODE_SIZE - 1) {
-        parse_fatal(state, "code array overflow\n");
+        parse_fatal(state, "Program overflow!\n");
     }
-}
+   }
 
 void emit(ParseState *state, OpCode op, double value, DataType type) {
     emit_overflow(state);
@@ -419,7 +419,8 @@ DataType parse_bool_term(ParseState *state) {
 DataType parse_bool_factor(ParseState *state) {
     DataType data_type = VAR_UNKNOWN;
 
-    switch (state->op) {
+    OpCode op = state->op;
+    switch (op) {
         case TOK_TRUE:
             emit(state, OP_PUSH_NUM, 1, VAR_NUMBER);
             next_token(state);
@@ -435,17 +436,17 @@ DataType parse_bool_factor(ParseState *state) {
         case OP_NOT:
             next_token(state);
             data_type = parse_bool_factor(state);
-            emit(state, OP_NOT, 0, VAR_NUMBER);
+            emit(state, op, 0, VAR_NUMBER);
             break;
 
         case OP_UPPER_STR:
         case OP_LOWER_STR:
-            { 
-                OpCode op = state->op;
-                next_token(state);
-                data_type = parse_bool_factor(state);
-                emit(state, op, 0, VAR_STRING);
+            next_token(state);
+            data_type = parse_bool_factor(state);
+            if (data_type != VAR_STRING) {
+                parse_fatal(state, "String expected'\n");
             }
+            emit(state, op, 0, VAR_STRING);
             break;
 
         case TOK_LPAREN:
