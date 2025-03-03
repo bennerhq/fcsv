@@ -107,9 +107,14 @@ DataType parse_cond_expr(ParseState *state);
 void parse_fatal(ParseState *state, const char *format, ...) {
     va_list args;
     va_start(args, format);
-    fprintf(stderr, "*** ERROR: ");
+    fprintf(stderr, "\n\n*** ERROR: ");
     vfprintf(stderr, format, args);
     fprintf(stderr, "    Parsing: %s\n", state->expr_begin);
+    fprintf(stderr, "             ");
+    for (int i = 0; i < state->expr - state->expr_begin; i++) {
+        fprintf(stderr, " ");
+    }
+    fprintf(stderr, "^\n");
     va_end(args);
 
     exit(EXIT_FAILURE);
