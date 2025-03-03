@@ -26,8 +26,6 @@
 #define MAX_STACK_SIZE      (1024)
 #define STACK_SIZE_BUFFER   (10)
 
-Variable stack[MAX_STACK_SIZE];
-
 const char *op_names[] = {
     "NOP",
     "PUSH %d",
@@ -114,6 +112,7 @@ int strregex(const char *str, const char *pattern) {
 }
 
 Variable* execute_code_datatype(const Instruction *code, const Variable *variables) {
+    Variable stack[MAX_STACK_SIZE];
     Variable* sp = stack;
 //print_code(code, variables);
     for (const Instruction *ip = code; ip->op != OP_HALT; ip++) {

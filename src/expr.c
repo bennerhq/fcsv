@@ -71,14 +71,14 @@ typedef struct {
 } Token;
 Token token;
 
-const char *expr;
-const char *expr_begin;
-const char *expr_end;
+static const char *expr;
+static const char *expr_begin;
+static const char *expr_end;
 
-const Variable *expr_variables;
+static const Variable *variables;
 
-Instruction *code = NULL; 
-int code_size;
+static Instruction *code = NULL; 
+static int code_size;
 
 const Token op_symbols[] = {
     {.str = "",     .op = OP_NOP},
@@ -341,9 +341,9 @@ DataType parse_factor() {
 
         case TOK_ID_NAME: {
             bool found = false;
-            for (int i = 0; expr_variables[i].type != VAR_END; i++) {
-                if (strncmp(expr_variables[i].name, token.name, strlen(token.name)) == 0) {
-                    data_type = expr_variables[i].type;
+            for (int i = 0; variables[i].type != VAR_END; i++) {
+                if (strncmp(variables[i].name, token.name, strlen(token.name)) == 0) {
+                    data_type = variables[i].type;
                     emit(OP_PUSH_VAR, i, data_type);
                     next_token();
 
@@ -528,7 +528,7 @@ void parse_cleaning(Instruction const *code) {
 
 const Instruction *parse_expression(const char *iexpr, const Variable *ivariables) {
     expr = iexpr;
-    expr_variables = ivariables;
+    variables = ivariables;
 
     code = (Instruction *) mem_malloc(MAX_CODE_SIZE * sizeof(Instruction *));
     if (code == NULL) {
