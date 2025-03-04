@@ -69,7 +69,6 @@ const struct {
     const char *str;
     const OpCode op;
 } op_symbols[] = {
-    {.str = "",         .op = OP_NOP},
     {.str = "+",        .op = OP_ADD},
     {.str = "-",        .op = OP_SUB},
     {.str = "*",        .op = OP_MUL},
