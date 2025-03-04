@@ -161,6 +161,7 @@ re_type:
             case OP_PUSH_NUM:
                 sp->type = VAR_NUMBER;
                 sp->value = ip->value;
+                sp->is_dynamic = false;
                 sp++;
                 break;
             case OP_PUSH_STR:
