@@ -53,7 +53,7 @@ typedef struct {
     
     const Variable *variables;
     
-    Instruction *code; 
+    Variable *code; 
     int code_size;
 
     OpCode op;
@@ -237,7 +237,7 @@ void emit_overflow(ParseState *state) {
 void emit(ParseState *state, OpCode op, double value, DataType type) {
     emit_overflow(state);
 
-    state->code[state->code_size++] = (Instruction){
+    state->code[state->code_size++] = (Variable){
         .op = op, 
         .value = value, 
         .type = type
@@ -247,7 +247,7 @@ void emit(ParseState *state, OpCode op, double value, DataType type) {
 void emit_str(ParseState *state, OpCode op, const char *str) {
     emit_overflow(state);
 
-    state->code[state->code_size++] = (Instruction){
+    state->code[state->code_size++] = (Variable){
         .op = op, 
         .str = str, 
         .type = VAR_STRING
@@ -265,7 +265,7 @@ void emit_type(ParseState *state, DataType data_type, OpCode op, DataType data_t
             break;
 
         default:
-            parse_fatal(state, "Unknown instruction type\n");
+            parse_fatal(state, "Unknown Variable type\n");
     }
 }
 
@@ -530,26 +530,26 @@ DataType parse_cond_expr(ParseState *state) {
     return data_type_true;
 }
 
-void parse_cleaning(Instruction const *code) {
+void parse_cleaning(Variable const *code) {
     if (code == NULL) {
         return;
     }
 
-    for (const Instruction *ip = code; ip->op != OP_HALT; ip++) {
-        if (ip->type == VAR_STRING && ip->op == OP_PUSH_STR) {
+    for (const Variable *ip = code; ip->op != OP_HALT; ip++) {
+        if (ip->op == OP_PUSH_STR) {
             mem_free((void *) ip->str);
         }
     }
     mem_free((void*) code);
 }
 
-const Instruction *parse_expression(const char *iexpr, const Variable *ivariables) {
+const Variable *parse_expression(const char *iexpr, const Variable *ivariables) {
     ParseState state = {
         .expr = iexpr,
         .expr_begin = iexpr,
         .expr_end = iexpr + strlen(iexpr),
         .variables = ivariables,
-        .code = (Instruction *) mem_malloc(MAX_CODE_SIZE * sizeof(Instruction *)),
+        .code = (Variable *) mem_malloc(MAX_CODE_SIZE * sizeof(Variable *)),
         .code_size = 0,
         .op = OP_NOP,
         .type = VAR_UNKNOWN

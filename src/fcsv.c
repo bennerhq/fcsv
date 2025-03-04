@@ -129,8 +129,12 @@ void var_print_all() {
 void var_cleaning(bool all) {
     if (all) {
         for (int idx = 0; idx < variables_base; idx++) {
-            if (variables[idx].type == VAR_STRING) {
-                mem_free((void *) variables[idx].str);
+            Variable *var = &variables[idx];
+            if (var->type == VAR_STRING && var->is_dynamic) {
+                mem_free((void *) var->str);
+                var->type = VAR_UNKNOWN;
+                var->str = NULL;
+                var->is_dynamic = false;
             }
         }
     }
@@ -138,6 +142,7 @@ void var_cleaning(bool all) {
     for (Variable *var = &variables[variables_base]; var->type != VAR_END; var++) {
         if (var->type == VAR_STRING && var->is_dynamic) {
             mem_free((void *) var->str);
+            var->type = VAR_UNKNOWN;
             var->str = NULL;
             var->is_dynamic = false;
         }
@@ -168,26 +173,31 @@ void assign_variables_config(Config *config) {
         Variable *var = &variables[idx];
         var->type = VAR_END;
 
-        const Instruction *code = parse_expression(expr, variables);
-        const Variable exec_var = execute_code_datatype(code, variables);
+        const Variable *code = parse_expression(expr, variables);
+        Variable exec_var = execute_code_datatype(code, variables);
 
         var->name = name;
         var->type = exec_var.type;
         var->is_dynamic = false;
 
-        switch (var->type) {
+        switch (exec_var.type) {
             case VAR_NUMBER:
                 var->value = exec_var.value;
                 break;
 
             case VAR_STRING:
                 var->str = (char *) mem_malloc(strlen(exec_var.str) + 1);
+                var->is_dynamic = true;
                 if (var->str == NULL) {
                     fprintf(stderr, "Out of memory\n");
                     exit(EXIT_FAILURE);
                 }
-
                 strcpy((char *)var->str, (char *)exec_var.str);
+                if (exec_var.is_dynamic) {
+                    mem_free((void *) exec_var.str);
+                    exec_var.str = NULL;
+                    exec_var.is_dynamic = false;
+                }
                 break;
 
             case VAR_DATETIME:
@@ -198,6 +208,7 @@ void assign_variables_config(Config *config) {
                 fprintf(stderr, "Unknown variable type %d\n", exec_var.type);
                 exit(EXIT_FAILURE);
         }
+
         parse_cleaning(code);
 
         idx ++;
@@ -296,9 +307,9 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     long last_progress = -1;
     long processed_size = 0;
 
-    const Instruction *input_code = NULL; 
+    const Variable *input_code = NULL; 
     int output_code_count = 0;
-    const Instruction *output_code[MAX_VARIABLES];
+    const Variable *output_code[MAX_VARIABLES];
     const char *output_delimiter = NULL;
     char line[MAX_LINE_LENGTH];
 

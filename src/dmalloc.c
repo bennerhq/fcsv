@@ -155,12 +155,38 @@ void *debug_realloc(void* ptr, size_t size, size_t old_size, const char *file, i
     return NULL;
 }
 
+void debug_dumphex(MemTrack *ptr) {
+    unsigned char *data = (unsigned char *)ptr->ptr;
+    size_t size = ptr->size + HEAD_MAGIC_SIZE + TAIL_MAGIC_SIZE;
+    for (size_t i = 0; i < size; i += 16) {
+        printf("%04zx  ", i);
+        for (size_t j = 0; j < 16; j++) {
+            if (i + j < size) {
+                printf("%02x ", data[i + j]);
+            } else {
+                printf("   ");
+            }
+        }
+        printf(" ");
+        for (size_t j = 0; j < 16; j++) {
+            if (i + j < size) {
+                unsigned char c = data[i + j];
+                printf("%c", (c >= 32 && c <= 126) ? c : '.');
+            }
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
 void debug_cleaning(const char *file, int line) {
     MemTrack *current = mem_track_head;
     while (current) {
         debug_check_ptr(current->ptr + HEAD_MAGIC_SIZE, file, line);
 
-        fprintf(stderr, "Memory leak detected: %p allocated at %s:%d\n", current->ptr, current->file, current->line);
+        fprintf(stderr, "Memory leak detected: %p allocated at %s:%d\n", current->ptr + HEAD_MAGIC_SIZE, current->file, current->line);
+        debug_dumphex(current);
+
         current = current->next;
     }
 }

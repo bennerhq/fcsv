@@ -91,6 +91,7 @@ typedef int OpCode;
 typedef int DataType;
 
 typedef struct {
+    OpCode op;
     DataType type;
     const char *name;
     bool is_dynamic;
@@ -101,17 +102,8 @@ typedef struct {
     };
 } Variable;
 
-typedef struct {
-    OpCode op;
-    DataType type;
-    union {
-        const char *str;
-        double value;  
-    };
-} Instruction;
-
-void print_code(const Instruction *code, const Variable *variables);
-Variable execute_code_datatype(const Instruction *code, const Variable *variables);
-double execute_code(const Instruction *code, const Variable *variables);
+void print_code(const Variable *code, const Variable *variables);
+Variable execute_code_datatype(const Variable *code, const Variable *variables);
+double execute_code(const Variable *code, const Variable *variables);
 
 #endif /* __EXEC_H__ */

@@ -43,7 +43,7 @@ const char *op_names[] = {
     "IN$",  "XIN$", "UP$",  "LO$"
 };
 
-void print_instruction(const Instruction *instr, const Variable *variables) {
+void print_instruction(const Variable *instr, const Variable *variables) {
     const char *fmt = op_names[instr->op];
 
     if (instr->op == OP_PUSH_VAR) {
@@ -62,8 +62,8 @@ void print_instruction(const Instruction *instr, const Variable *variables) {
     printf("\n");
 }
 
-void print_code(const Instruction *code, const Variable *variables) {
-    const Instruction *ip = code - 1;
+void print_code(const Variable *code, const Variable *variables) {
+    const Variable *ip = code - 1;
     do {
         ip ++;
 
@@ -130,11 +130,11 @@ void to_strcase(Variable *sp, int (*func)(int)) {
     sp->is_dynamic = true;
 }
 
-Variable execute_code_datatype(const Instruction *code, const Variable *variables) {
+Variable execute_code_datatype(const Variable *code, const Variable *variables) {
     Variable stack[MAX_STACK_SIZE]; // Not thread safe
     Variable* sp = stack;
 
-    for (const Instruction *ip = code; ip->op != OP_HALT; ip++) {
+    for (const Variable *ip = code; ip->op != OP_HALT; ip++) {
         if ((sp - stack) + STACK_SIZE_BUFFER >= MAX_STACK_SIZE) {
             fprintf(stderr, "Error: Stack overflow!\n");
             exit(EXIT_FAILURE);
@@ -154,7 +154,9 @@ re_type:
                 }
                 break;
             case OP_PUSH_VAR:
-                (*sp++) = variables[(int) ip->value];
+                (*sp) = variables[(int) ip->value];
+                sp->is_dynamic = false;
+                sp ++;
                 break;
             case OP_PUSH_NUM:
                 sp->type = VAR_NUMBER;
@@ -164,6 +166,7 @@ re_type:
             case OP_PUSH_STR:
                 sp->type = VAR_STRING;
                 sp->str = ip->str;
+                sp->is_dynamic = false;
                 sp++;
                 break;
 
@@ -252,8 +255,11 @@ re_type:
                     strcpy(result, sp[-1].str);
                     strcat(result, sp[0].str);
 
-                    if (sp[-1].is_dynamic) mem_free((void *) sp[-1].str);
-
+                    if (sp[0].is_dynamic) {
+                        mem_free((void *) sp[0].str);
+                        sp[0].str = NULL;
+                        sp[0].is_dynamic = false;
+                    }
                     sp[-1].str = result;
                     sp[-1].is_dynamic = true;
                 }
@@ -371,7 +377,7 @@ re_type:
     return *sp;
 }
 
-double execute_code(const Instruction *code, const Variable *variables) {
+double execute_code(const Variable *code, const Variable *variables) {
     double value = 0;
     Variable result = execute_code_datatype(code, variables);
 

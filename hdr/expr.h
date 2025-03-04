@@ -37,7 +37,7 @@
 
 #include "exec.h"
 
-const Instruction *parse_expression(const char *iexpr, const Variable *ivariables);
-void parse_cleaning(Instruction const *code);
+const Variable *parse_expression(const char *iexpr, const Variable *ivariables);
+void parse_cleaning(Variable const *code);
 
 #endif /* __EXPR_H__ */
