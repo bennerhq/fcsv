@@ -17,6 +17,7 @@
 #define MALLOC_DEBUG       (1)
 #define MALLOC_TRACKING    (0)
 #define MALLOC_CALLSTACK   (1)
+#define MALLOC_HEXDUMP     (1)
 
 #if MALLOC_DEBUG
     void *debug_malloc(size_t size, const char *file, int line);

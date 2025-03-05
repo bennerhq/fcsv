@@ -25,6 +25,7 @@ followed five core principles:
 - Supports various CSV formats and delimiters
 - Allows for easy manipulation of CSV data
 - Output C code from the scripting language, that can replace the stack machine
+- Handle utf8 / unicode strings
 
 ## Code Functionality
 

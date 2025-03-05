@@ -37,6 +37,34 @@ typedef struct MemTrack {
 
 MemTrack *mem_track_head = NULL;
 
+void debug_dumphex(MemTrack *ptr) {
+    if (!MALLOC_HEXDUMP) return;
+
+    unsigned char *data = (unsigned char *)ptr->ptr;
+    size_t size = ptr->size + HEAD_MAGIC_SIZE + TAIL_MAGIC_SIZE;
+    if (size > 1024) size = 1024;
+
+    for (size_t i = 0; i < size; i += 16) {
+        printf("%04zx  ", i);
+        for (size_t j = 0; j < 16; j++) {
+            if (i + j < size) {
+                printf("%02x ", data[i + j]);
+            } else {
+                printf("   ");
+            }
+        }
+        printf(" ");
+        for (size_t j = 0; j < 16; j++) {
+            if (i + j < size) {
+                unsigned char c = data[i + j];
+                printf("%c", (c >= 32 && c <= 126) ? c : '.');
+            }
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
 MemTrack * debug_find_ptr(void *ptr, const char *file, int line) {
     MemTrack *current = mem_track_head;
     while (current) {
@@ -76,13 +104,12 @@ void debug_check_ptr(void *user_ptr, const char *file, int line) {
     MemTrack *track = debug_find_ptr(ptr, file, line);
     if (!track) return;
 
-    if (memcmp(ptr, HEAD_MAGIC, HEAD_MAGIC_SIZE) != 0) {
-        fprintf(stderr, COLOR_RED "Memory corruption detected at head of %p allocated at %s:%d\n" COLOR_RESET, user_ptr, file, line);
-        fprintf(stderr, COLOR_RED "Memory allocated at: %s at %d\n" COLOR_RESET, track->file, track->line);
-    }
-    if (memcmp(ptr + HEAD_MAGIC_SIZE + track->size, TAIL_MAGIC, TAIL_MAGIC_SIZE) != 0) {
-        fprintf(stderr, COLOR_RED "Memory corruption detected at tail of %p allocated at %s:%d\n" COLOR_RESET, user_ptr, file, line);
-        fprintf(stderr, COLOR_RED "Memory allocated at: %s at %d\n" COLOR_RESET, track->file, track->line);
+    if (memcmp(ptr, HEAD_MAGIC, HEAD_MAGIC_SIZE) != 0 || 
+        memcmp(ptr + HEAD_MAGIC_SIZE + track->size, TAIL_MAGIC, TAIL_MAGIC_SIZE) != 0) {
+        fprintf(stderr, COLOR_RED "Memory corruption detected at head or tail of %p allocated at %s:%d\n" COLOR_RESET, user_ptr, file, line);
+        fprintf(stderr, COLOR_RED "Memory allocated at: %s at %d\n\n" COLOR_RESET, track->file, track->line);
+
+        debug_dumphex(track);
     }
 }
 
@@ -153,30 +180,6 @@ void *debug_realloc(void* ptr, size_t size, size_t old_size, const char *file, i
     }
 
     return NULL;
-}
-
-void debug_dumphex(MemTrack *ptr) {
-    unsigned char *data = (unsigned char *)ptr->ptr;
-    size_t size = ptr->size + HEAD_MAGIC_SIZE + TAIL_MAGIC_SIZE;
-    for (size_t i = 0; i < size; i += 16) {
-        printf("%04zx  ", i);
-        for (size_t j = 0; j < 16; j++) {
-            if (i + j < size) {
-                printf("%02x ", data[i + j]);
-            } else {
-                printf("   ");
-            }
-        }
-        printf(" ");
-        for (size_t j = 0; j < 16; j++) {
-            if (i + j < size) {
-                unsigned char c = data[i + j];
-                printf("%c", (c >= 32 && c <= 126) ? c : '.');
-            }
-        }
-        printf("\n");
-    }
-    printf("\n");
 }
 
 void debug_cleaning(const char *file, int line) {

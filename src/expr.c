@@ -134,7 +134,7 @@ void set_token(ParseState *state, OpCode op, const char *match, int len) {
     }
 
     if (len >= MAX_NAME_LEN - 1) {
-        parse_fatal(state, "String too long %s\n", start);
+        parse_fatal(state, "Name too long %s\n", start);
     }
     char value[MAX_NAME_LEN];
     strncpy(value, start, len);
