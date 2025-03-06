@@ -62,7 +62,7 @@ void print_instruction(const Variable *instr, const Variable *variables) {
     printf("\n");
 }
 
-void print_code(const Variable *code, const Variable *variables) {
+void execute_print_code(const Variable *code, const Variable *variables) {
     const Variable *ip = code - 1;
     do {
         ip ++;

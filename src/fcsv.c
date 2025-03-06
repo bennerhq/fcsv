@@ -12,8 +12,7 @@
  */
 
 /**
- * This program reads a CSV file and filters out rows that match a 
- * given expression.
+ * This program filters CSV files
  */
 
 #include <stdio.h>
@@ -202,8 +201,6 @@ void assign_variables_config(Config *config) {
                     strcpy((char *)var->str, (char *)exec_var.str);
                     if (exec_var.is_dynamic) {
                         mem_free((void *) exec_var.str);
-                        exec_var.str = NULL;
-                        exec_var.is_dynamic = false;
                     }
                     break;
 

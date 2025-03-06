@@ -50,10 +50,10 @@ typedef struct {
     const char *expr;
     const char *expr_begin;
     const char *expr_end;
-    
+ 
     Variable *variables;
-    
-    Variable *code; 
+
+    Variable *code;
     int code_size;
 
     OpCode op;
@@ -228,7 +228,7 @@ void next_token(ParseState *state) {
 }
 
 void emit_overflow(ParseState *state) {
-    if (state->code_size >= MAX_CODE_SIZE - 1) {
+    if (state->code_size + 1 >= MAX_CODE_SIZE) {
         parse_fatal(state, "Program overflow!\n");
     }
 }
@@ -236,7 +236,7 @@ void emit_overflow(ParseState *state) {
 void emit(ParseState *state, OpCode op, double value, DataType type) {
     emit_overflow(state);
 
-    state->code[state->code_size++] = (Variable){
+    state->code[state->code_size++] = (Variable) {
         .op = op, 
         .value = value, 
         .type = type
@@ -246,7 +246,7 @@ void emit(ParseState *state, OpCode op, double value, DataType type) {
 void emit_str(ParseState *state, OpCode op, const char *str) {
     emit_overflow(state);
 
-    state->code[state->code_size++] = (Variable){
+    state->code[state->code_size++] = (Variable) {
         .op = op, 
         .str = str, 
         .type = VAR_STRING

@@ -14,7 +14,9 @@
 #ifndef __DMALLOC_H__
 #define __DMALLOC_H__
 
-#define MALLOC_DEBUG       (0)
+#include <stddef.h>
+
+#define MALLOC_DEBUG       (1)
 #define MALLOC_TRACKING    (0)
 #define MALLOC_CALLSTACK   (1)
 #define MALLOC_HEXDUMP     (1)
@@ -32,9 +34,11 @@
 #   define mem_cleaning()                       debug_cleaning(__FILE__, __LINE__)
 #   define mem_integrity()                      debug_integrity()
 #else
+    void *realloc__(void *ptr, size_t size, size_t old_size);
+
 #   define mem_malloc(size)                     malloc(size)
 #   define mem_free(ptr)                        free(ptr)
-#   define mem_realloc(ptr, size, old_size)     realloc(ptr, size)
+#   define mem_realloc(ptr, size, old_size)     realloc__(ptr, size, old_size)
 #   define mem_cleaning()                       {}
 #   define mem_integrity()                      {}
 #endif

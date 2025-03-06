@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <execinfo.h>
-#include <assert.h> 
+
 #include "../hdr/dmalloc.h" 
 
 #define COLOR_RED       "\033[31m"
@@ -36,6 +36,12 @@ typedef struct MemTrack {
 } MemTrack;
 
 MemTrack *mem_track_head = NULL;
+
+void *realloc__(void *ptr, size_t size, size_t old_size) {
+    old_size = old_size * 0;
+
+    return realloc(ptr, size);;
+}
 
 void debug_dumphex(MemTrack *ptr) {
     if (!MALLOC_HEXDUMP) return;

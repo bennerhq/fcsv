@@ -102,7 +102,7 @@ typedef struct {
     };
 } Variable;
 
-void print_code(const Variable *code, const Variable *variables);
+void execute_print_code(const Variable *code, const Variable *variables);
 Variable execute_code_datatype(const Variable *code, const Variable *variables);
 double execute_code(const Variable *code, const Variable *variables);
 
