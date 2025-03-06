@@ -51,7 +51,7 @@ typedef struct {
     const char *expr_begin;
     const char *expr_end;
     
-    const Variable *variables;
+    Variable *variables;
     
     Variable *code; 
     int code_size;
@@ -344,12 +344,20 @@ DataType parse_factor(ParseState *state) {
             data_type = VAR_NUMBER;
             break;
 
+        case TOK_VAR_STR:
+            emit_str(state, OP_PUSH_STR, state->str);
+
+            next_token(state);
+            data_type = VAR_STRING;
+            break;
+
         case TOK_ID_NAME: {
             bool found = false;
             for (int i = 0; state->variables[i].type != VAR_END; i++) {
                 if (strncmp(state->variables[i].name, state->name, strlen(state->name)) == 0) {
-                    data_type = state->variables[i].type;
                     emit(state, OP_PUSH_VAR, i, data_type);
+
+                    data_type = state->variables[i].type;
                     next_token(state);
 
                     found = true;
@@ -367,12 +375,6 @@ DataType parse_factor(ParseState *state) {
             emit(state, OP_PUSH_VAR, state->value, VAR_NUMBER);
             next_token(state);
             data_type = VAR_NUMBER;
-            break;
-
-        case TOK_VAR_STR:
-            emit_str(state, OP_PUSH_STR, state->str);
-            next_token(state);
-            data_type = VAR_STRING;
             break;
 
         case TOK_LPAREN:
@@ -542,7 +544,7 @@ void parse_cleaning(Variable const *code) {
     mem_free((void*) code);
 }
 
-const Variable *parse_expression(const char *iexpr, const Variable *ivariables) {
+const Variable *parse_expression(const char *iexpr, Variable *ivariables) {
     ParseState state = {
         .expr = iexpr,
         .expr_begin = iexpr,

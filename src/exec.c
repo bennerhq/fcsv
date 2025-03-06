@@ -100,9 +100,8 @@ void print_stack(Variable *stack, Variable *sp) {
 
 int strregex(const char *str, const char *pattern) {
     regex_t regex;
-    int ret;
 
-    ret = regcomp(&regex, pattern, REG_EXTENDED);
+    int ret = regcomp(&regex, pattern, REG_EXTENDED);
     if (ret) return 0;
 
     ret = regexec(&regex, str, 0, NULL, 0);
@@ -153,11 +152,6 @@ re_type:
                     ip = code + (int) ip->value - 1;
                 }
                 break;
-            case OP_PUSH_VAR:
-                (*sp) = variables[(int) ip->value];
-                sp->is_dynamic = false;
-                sp ++;
-                break;
             case OP_PUSH_NUM:
                 sp->type = VAR_NUMBER;
                 sp->value = ip->value;
@@ -169,6 +163,11 @@ re_type:
                 sp->str = ip->str;
                 sp->is_dynamic = false;
                 sp++;
+                break;
+            case OP_PUSH_VAR:
+                (*sp) = variables[(int) ip->value];
+                sp->is_dynamic = false;
+                sp ++;
                 break;
 
             // Dynamic type

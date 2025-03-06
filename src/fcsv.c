@@ -173,43 +173,51 @@ void assign_variables_config(Config *config) {
         Variable *var = &variables[idx];
         var->type = VAR_END;
 
-        const Variable *code = parse_expression(expr, variables);
-        Variable exec_var = execute_code_datatype(code, variables);
-
-        var->name = name;
-        var->type = exec_var.type;
-        var->is_dynamic = false;
-
-        switch (exec_var.type) {
-            case VAR_NUMBER:
-                var->value = exec_var.value;
-                break;
-
-            case VAR_STRING:
-                var->str = (char *) mem_malloc(strlen(exec_var.str) + 1);
-                var->is_dynamic = true;
-                if (var->str == NULL) {
-                    fprintf(stderr, "Out of memory\n");
-                    exit(EXIT_FAILURE);
-                }
-                strcpy((char *)var->str, (char *)exec_var.str);
-                if (exec_var.is_dynamic) {
-                    mem_free((void *) exec_var.str);
-                    exec_var.str = NULL;
-                    exec_var.is_dynamic = false;
-                }
-                break;
-
-            case VAR_DATETIME:
-                var->datetime = exec_var.datetime; // FIXME: Copy??
-                break;
-
-            default:
-                fprintf(stderr, "Unknown variable type %d\n", exec_var.type);
-                exit(EXIT_FAILURE);
+        if (strstr(name, "_script") == name + strlen(name) - strlen("_script")) {
+            var->name = name;
+            var->type = VAR_STRING;
+            var->str = expr;
+            var->is_dynamic = false;
         }
+        else {
+            const Variable *code = parse_expression(expr, variables);
+            Variable exec_var = execute_code_datatype(code, variables);
 
-        parse_cleaning(code);
+            var->name = name;
+            var->type = exec_var.type;
+            var->is_dynamic = false;
+
+            switch (exec_var.type) {
+                case VAR_NUMBER:
+                    var->value = exec_var.value;
+                    break;
+
+                case VAR_STRING:
+                    var->str = (char *) mem_malloc(strlen(exec_var.str) + 1);
+                    var->is_dynamic = true;
+                    if (var->str == NULL) {
+                        fprintf(stderr, "Out of memory\n");
+                        exit(EXIT_FAILURE);
+                    }
+                    strcpy((char *)var->str, (char *)exec_var.str);
+                    if (exec_var.is_dynamic) {
+                        mem_free((void *) exec_var.str);
+                        exec_var.str = NULL;
+                        exec_var.is_dynamic = false;
+                    }
+                    break;
+
+                case VAR_DATETIME:
+                    var->datetime = exec_var.datetime; // FIXME: Copy??
+                    break;
+
+                default:
+                    fprintf(stderr, "Unknown variable type %d\n", exec_var.type);
+                    exit(EXIT_FAILURE);
+            }
+
+            parse_cleaning(code);
+        }
 
         idx ++;
     }
@@ -255,6 +263,7 @@ void assign_variables_type() {
 
 void assign_variables_value() {
     var_cleaning(false);
+
     for (int idx = 0; tokens[idx] != NULL; idx++) {
         Variable *var = &variables[variables_base + idx];
         var->is_dynamic = false;
@@ -332,7 +341,7 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     fseek(inputFile, 0, SEEK_SET);
 
     char *output_fields_copy = NULL;
-    const char *output_fields = var_get_str("output_fields", NULL);
+    const char *output_fields = var_get_str("output_fields_script", NULL);
     if (output_fields) {
         output_fields_copy = (void *) mem_malloc(strlen(output_fields) + 1);
         if (output_fields_copy == NULL) {
