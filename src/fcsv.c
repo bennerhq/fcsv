@@ -114,37 +114,32 @@ void var_print(const Variable *var) {
 }
 
 void var_print_all() {
-    printf("---- Variables ---------\n");
     for (int i = 0; variables[i].type != VAR_END; i++) {
         const Variable *var = &variables[i];
         printf("%2d\t", i);
         var_print(var);
     }
-    printf("------------------------\n\n");
+}
+
+void var_free(Variable *var) {
+    if (var->type == VAR_STRING && var->is_dynamic) {
+        mem_free((void *) var->str);
+        var->type = VAR_UNKNOWN;
+        var->str = NULL;
+        var->is_dynamic = false;
+    }
 }
 
 void var_cleaning(bool all) {
     if (all) {
         for (int idx = 0; idx < variables_base; idx++) {
-            Variable *var = &variables[idx];
-            if (var->type == VAR_STRING && var->is_dynamic) {
-                mem_free((void *) var->str);
-                var->type = VAR_UNKNOWN;
-                var->str = NULL;
-                var->is_dynamic = false;
-            }
+            var_free(&variables[idx]);
         }
     }
 
     for (Variable *var = &variables[variables_base]; var->type != VAR_END; var++) {
-        if (var->type == VAR_STRING && var->is_dynamic) {
-            mem_free((void *) var->str);
-            var->type = VAR_UNKNOWN;
-            var->str = NULL;
-            var->is_dynamic = false;
-        }
+        var_free(var);
     }
-
 }
 
 const char *var_get_str(const char *name, const char *default_value) {
@@ -520,8 +515,8 @@ int main(int argc, char *argv[]) {
 
         const char *ext = strrchr(entry->d_name, '.');
         if (ext && strcmp(ext, ".csv") == 0) {
-            char input_filename[PATH_MAX],
-                 output_filename[PATH_MAX];
+            char input_filename[strlen(input_dir) + strlen(entry->d_name) + 2];
+            char output_filename[strlen(output_dir) + strlen(entry->d_name) + 2];
             snprintf(input_filename, sizeof(input_filename), "%s/%s", input_dir, entry->d_name);
             snprintf(output_filename, sizeof(output_filename), "%s/%s", output_dir, entry->d_name);
 
