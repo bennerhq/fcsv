@@ -37,11 +37,13 @@ typedef struct MemTrack {
 
 MemTrack *mem_track_head = NULL;
 
-void *realloc__(void *ptr, size_t size, size_t old_size) {
-    old_size = old_size * 0;
+#if !MALLOC_DEBUG
+    void *mem_realloc(void *ptr, size_t size, size_t old_size) {
+        old_size = old_size * 0;
 
-    return realloc(ptr, size);;
-}
+        return realloc(ptr, size);
+    }
+#endif
 
 void debug_dumphex(MemTrack *ptr) {
     if (!MALLOC_HEXDUMP) return;

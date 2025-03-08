@@ -43,8 +43,6 @@ Variable variables[MAX_VARIABLES];
 
 const char *tokens[MAX_VARIABLES];
 
-const char *input_csv_delimiter = ",";
-
 int is_valid_double(const char *str) {
     char *endptr;
     strtod(str, &endptr);
@@ -119,7 +117,7 @@ void var_print_all() {
     printf("---- Variables ---------\n");
     for (int i = 0; variables[i].type != VAR_END; i++) {
         const Variable *var = &variables[i];
-        printf("%2d  ", i);
+        printf("%2d\t", i);
         var_print(var);
     }
     printf("------------------------\n\n");
@@ -319,6 +317,8 @@ void process_csv(const char *input_filename, const char *output_filename, const 
     const char *output_delimiter = NULL;
     char line[MAX_LINE_LENGTH];
 
+    const char *input_csv_delimiter = var_get_str("input_csv_delimiter", ",");
+
     FILE *inputFile = fopen(input_filename, "rb");
     if (inputFile == NULL) {
         fprintf(stderr, "Error opening input file: '%s'\n", input_filename);
@@ -418,7 +418,6 @@ void process_csv(const char *input_filename, const char *output_filename, const 
 
         for (int index = 0; index < output_code_count; index++) {
             const Variable res = execute_code_datatype(output_code[index], variables);
-
             switch (res.type) {
                 case VAR_NUMBER:
                     sprintf(output_line_ptr, "%f", res.value);
@@ -501,7 +500,6 @@ int main(int argc, char *argv[]) {
     const char *input_dir = var_get_str("source_dir", NULL);
     const char *output_dir = var_get_str("dest_dir", NULL);
     const char *expr = var_get_str("input_script", NULL);
-    input_csv_delimiter = var_get_str("input_csv_delimiter", ",");
 
     if (!input_dir || !output_dir || !expr) {
         fprintf(stderr, "Usage: %s <conf file> | <input_directory> <output_directory> <expression>\n", argv[0]);
